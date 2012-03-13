@@ -99,6 +99,7 @@ class MonkeyGIT:
 
 class Duda:
     def __init__(self):
+        self.print_version()
         self.git = MonkeyGIT(PROTOCOL_GIT)
         self.web_service = None
         self.get_arguments()
@@ -111,8 +112,6 @@ class Duda:
         return "%s/monkey" % (dudac_home)
 
     def update_framework(self, protocol):
-        self.print_version()
-
         self.git.set_protocol(protocol)
 
         monkey_home = self._monkey_home()
