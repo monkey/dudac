@@ -75,8 +75,11 @@ class MonkeyGIT:
         execute("Cloning Monkey HTTP Daemon\t", cmd)
 
     def update(self, to):
+        cpath = os.getcwd()
+        os.chdir(to)
         cmd = "git pull " + to
         execute("Updating Monkey HTTP Daemon", cmd)
+        os.chdir(cpath)
 
     def remove(self, path):
         cmd = "rm -rf- %s" % path
@@ -108,6 +111,8 @@ class Duda:
         return "%s/monkey" % (dudac_home)
 
     def update_framework(self, protocol):
+        self.print_version()
+
         self.git.set_protocol(protocol)
 
         monkey_home = self._monkey_home()
@@ -223,10 +228,11 @@ class Duda:
         self.git.remove(mh)
 
     def print_version(self):
-        print "Duda Client - web services deployment tool"
+        print "Duda Client Manager - v0.1"
+        print "http://monkey-project.com\n"
 
     def print_help(self):
-        print "Usage: dudac [-h] [-v] -w WEB_SERVICE_PATH\n"
+        print "Usage: dudac [-g|-s] [-h] [-v] -w WEB_SERVICE_PATH\n"
         print "Options:"
         print "  -w WEB_SERVICE\tSpecify web service source path"
         print "  -s\t\t\tClone/Update using SSH"
