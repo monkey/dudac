@@ -1,8 +1,7 @@
 Duda Client Manager
 ===================
-Duda is a web services framework built on top of Monkey HTTP Daemon, 
-it aims to provide a simple command line interface to manage Duda web
-services.
+DudaC is a command line interface for the web services framework 'Duda', 
+it aims to to manage Duda web services in a easy manner. 
 
 Usage
 =====
