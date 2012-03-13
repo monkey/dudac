@@ -1,0 +1,23 @@
+Duda Client Manager
+===================
+Duda is a web services framework built on top of Monkey HTTP Daemon, 
+it aims to provide a simple command line interface to manage Duda web
+services.
+
+Usage
+=====
+1) Get the development environment:
+
+   # ./dudac -g
+
+2) Launch your web service:
+
+   # ./dudac -w PATH_TO_WEBSERVICE_SOURCE_CODE
+
+3) Hit your web server
+
+   # firefox http://localhost:2001
+
+Author
+======
+Eduardo Silva <edsiper@gmail.com>
