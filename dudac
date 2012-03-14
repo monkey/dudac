@@ -102,6 +102,8 @@ class Duda:
         self.print_version()
         self.git = MonkeyGIT(PROTOCOL_GIT)
         self.web_service = None
+        self.service = None
+        self.port = 2001
         self.get_arguments()
 
     def _monkey_home(self):
@@ -134,7 +136,9 @@ class Duda:
 
         exit(0)
 
-    def run_webservice(self, ws):
+    def run_webservice(self):
+        ws = self.service
+
         makefile = "%s/Makefile" % (ws)
         makefile_in = "%s/Makefile.in" % (ws)
         if os.path.isdir(ws) == False or os.path.exists(makefile_in) == False:
@@ -179,7 +183,7 @@ class Duda:
         lines = f.readlines()
         f.close()
 
-        # Load web services
+        # Setting up web services
         print "[+] Configuring HTTP Server\t",
         raw = ""
         for line in lines:
@@ -197,6 +201,7 @@ class Duda:
         f.write(raw)
         f.close()
 
+        # Setting up Duda plugin configuration
         duda = self._monkey_home() + "/conf/plugins/duda/duda.conf"
         f = open(duda, "r")
         lines = f.readlines()
@@ -213,12 +218,29 @@ class Duda:
         f.write(raw)
         f.close()
 
+        # Setting up Monkey
+        monkey = self._monkey_home() + "/conf/monkey.conf"
+        f = open(monkey, "r")
+        lines = f.readlines()
+        f.close()
+
+        raw = ""
+        for line in lines:
+            if line.startswith("    Port"):
+                raw += "    Port " + str(self.port)
+            else:
+                raw += line
+
+        f = open(monkey, "w")
+        f.write(raw)
+        f.close()
+
         print "[OK]"
 
         http = self._monkey_home() + "/bin/monkey"
 
         try:
-            execute("Running HTTP Server\t\t[http://localhost:2001]\n", http)
+            execute("Running HTTP Server\t\t[http://localhost:%s]\n" % str(self.port), http)
         except:
             print "\nDone!"
 
@@ -243,7 +265,7 @@ class Duda:
     def get_arguments(self):
         # Reading command line arguments
         try:
-            optlist, args = getopt.getopt(sys.argv[1:], 'sgrhvw:')
+            optlist, args = getopt.getopt(sys.argv[1:], 'sgrhvw:p:')
         except getopt.GetoptError:
             self.print_help()
             sys.exit(2)
@@ -263,18 +285,23 @@ class Duda:
                 break
             if op == '-r':
                 self.reset()
+                exit(0)
                 break
             if op == '-h':
                 self.print_help()
                 sys.exit(0)
                 break
+            if op == '-p':
+                self.port = arg
             if op == '-v':
                 self.print_version()
                 sys.exit(0)
                 break
             if op == '-w':
-                self.run_webservice(arg)
-                break
+                self.service = arg
+
+        if self.service:
+            self.run_webservice()
 
     def _temp_path(self):
         pass
