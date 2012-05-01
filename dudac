@@ -79,7 +79,7 @@ class MonkeyGIT:
     def update(self, to):
         cpath = os.getcwd()
         os.chdir(to)
-        cmd = "git pull " + to
+        cmd = "git pull "
         execute("Updating Monkey HTTP Daemon", cmd)
         os.chdir(cpath)
 
