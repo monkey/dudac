@@ -21,67 +21,127 @@ import sys
 import shutil
 import getopt
 import commands
+import ConfigParser
 
 PROTOCOL_GIT = 0
 PROTOCOL_SSH = 1
 
 def execute(header, command, status=True):
-    print "[+] %s" % (header),
+    print "[+] %-30s" % (header),
     sys.stdout.flush()
 
     ret = commands.getstatusoutput(command)
     if ret[0] == 0:
         if status is True:
-            print "\t[OK]"
+            print "[OK]"
     else:
         if status is True:
-            print "\t[FAILED]\n"
+            print "[FAILED]\n"
         print ret[1]
         exit(1)
 
     return ret
 
+class DudaConfig(ConfigParser.ConfigParser):
+    def __init__(self):
+        ConfigParser.ConfigParser.__init__(self)
+
+    def open(self, path):
+        self.read(path)
+
+    def get_handlers(self):
+        return self.sections()
+
+    def get_key(self, handler, key):
+        try:
+            val = self.get(handler, key)
+            return val
+        except:
+            return None
+
 class Monkey:
+    recent_configure = False
+    recent_build = False
+    recent_clean = False
+
     def __init__(self, source_path):
         self.mk_path = source_path
 
     def configure(self):
+        if self.recent_configure is True:
+            return
+
         configure = "%s/./configure --debug --disable-plugins=auth,cheetah,mandril,logger,palm,dirlisting --enable-plugins=liana,duda" % (self.mk_path)
-        execute("Configuring Monkey\t\t", configure)
+        execute("Monkey: prepare build", configure)
+
+        self.recent_configure = True
 
     def make_build(self):
+        if self.recent_build is True:
+            return
+
         cmd = "make -C %s" % (self.mk_path)
-        execute("Building Monkey\t\t", cmd)
+        execute("Monkey: building", cmd)
+
+        self.recent_build = True
 
     def make_clean(self):
+        if self.recent_clean is True:
+            return
+
         cmd = "make -C %s clean" % (self.mk_path)
-        execute("Cleaning Monkey\t\t", cmd)
+        execute("Monkey: cleaning", cmd)
+
+        self.recent_clean = True
 
     def system(self, cmd):
         return commands.getstatusoutput(cmd)
 
 class MonkeyGIT:
-    def __init__(self, protocol):
-        self.clone_git = "git://git.monkey-project.com/monkey"
-        self.clone_ssh = "ssh://git.monkey-project.com/srv/git/monkey"
-        self.set_protocol(protocol)
+    # Default repositories
+    version  = 'master'
+    git_repo = 'git://git.monkey-project.com/monkey'
+    ssh_repo = 'ssh://git.monkey-project.com/srv/git/monkey'
+    recent_update   = False
+    recent_master   = False
+    recent_snapshot = False
+
+    def __init__(self):
+        pass
 
     def set_protocol(self, protocol):
         if protocol == PROTOCOL_GIT:
-            self.protocol = self.clone_git
+            self.protocol = self.git_repo
         elif protocol == PROTOCOL_SSH:
-            self.protocol = self.clone_ssh
+            self.protocol = self.ssh_repo
+
+    def setup(self, version, git_repo, ssh_repo):
+        if version is not None:
+            self.version = version
+
+        if git_repo is not None:
+            self.git_repo = git_repo
+
+        if ssh_repo is not None:
+            self.ssh_repo = ssh_repo
 
     def clone(self, to):
         cmd = "git clone " + self.protocol + " " + to
-        execute("Cloning Monkey HTTP Daemon\t", cmd)
+        execute("Monkey: cloning source code", cmd)
 
     def update(self, to):
+        if self.recent_update is True:
+            return
+
+        self.master()
+
         cpath = os.getcwd()
         os.chdir(to)
-        cmd = "git pull "
-        execute("Updating Monkey HTTP Daemon", cmd)
+        cmd = "git pull"
+        execute("GIT: updating Monkey", cmd)
         os.chdir(cpath)
+
+        self.recent_update = True
 
     def remove(self, path):
         cmd = "rm -rf- %s" % path
@@ -99,47 +159,149 @@ class MonkeyGIT:
         print l,
         sys.stdout.flush()
 
-class Duda:
-    def __init__(self):
-        self.print_version()
-        self.git = MonkeyGIT(PROTOCOL_GIT)
-        self.web_service = None
-        self.service = None
-        self.port = 2001
-        self.get_arguments()
-
-    def _monkey_home(self):
+    def home(self):
         # Check our user temporal directory
         home = os.getenv('USERPROFILE') or os.getenv('HOME')
         dudac_home = "%s/.dudac" % (home)
 
         return "%s/monkey" % (dudac_home)
 
+    # Return the current head hash
+    def master(self):
+        mkh = self.home()
+        if os.path.exists(mkh) is False:
+            pass
+
+        if self.recent_master is True:
+            return
+
+        cmd = 'git checkout master'
+        cpath = os.getcwd()
+        os.chdir(self.home())
+        execute("GIT: checkout master", cmd)
+        os.chdir(cpath)
+
+        self.recent_master = True
+
+    # A snapshot takes the value of the 'version' key and set the GIT repository
+    # to the specified point, a few examples:
+    #
+    #    version = master
+    #    version = commit@dc2d07d8ac991392aaf8de8ea82cc60257a15670
+    #    version = branch@my_devel_branch
+    #    version = tag@v1.5
+    #
+    def snapshot(self):
+        if self.recent_snapshot is True:
+            return
+
+        v = self.version
+
+        try:
+            if v == 'master':
+                cmd = 'git checkout master'
+            elif v.startswith('commit') or v.startswith('tag') or v.startswith('branch'):
+                arr = v.split('@')
+                cmd = 'git checkout %s' % (arr[1])
+            else:
+                print "Error: Invalid 'version' value"
+                exit(1)
+        except:
+            print "Error: invalid 'version' value"
+            exit(1)
+
+
+        # Make sure to go back to master
+        self.master()
+
+        cpath = os.getcwd()
+        os.chdir(self.home())
+        execute("GIT: switch to new head", cmd)
+        os.chdir(cpath)
+
+        self.recent_snapshot = True
+
+class Duda:
+    def __init__(self):
+        self.print_version()
+        self.web_service = None
+        self.service = None
+        self.port = 2001
+        self.rebuild_monkey = True
+        self.mk_git = MonkeyGIT()
+        self.mk_home = self.mk_git.home()
+        self.monkey  = Monkey(self.mk_home)
+        self.get_arguments()
+
+    # This routine read the config.dudac configuration file which is
+    # optional inside every web service source code. It specifies the
+    # Monkey sources requirements and perform the right setup
+    def config_requirements(self):
+        ws = self.service
+
+        config_file = os.path.abspath("%s/config.dudac" % (ws))
+        if os.path.isdir(ws) == False:
+            print "Error: Invalid web service directory"
+            exit(1)
+
+        # Check if the service have a configuration file
+        if os.path.isfile(config_file) == False:
+            return
+
+        # Read the configuration
+        config = DudaConfig()
+        config.open(config_file)
+
+        version  = None
+        git_repo = None
+        ssh_repo = None
+
+        for h in config.get_handlers():
+            if h == "MONKEY":
+                # Get key/values
+                version  = config.get_key(h, 'version')
+                git_repo = config.get_key(h, 'git_repo')
+                ssh_repo = config.get_key(h, 'ssh_repo')
+
+        self.mk_git.setup(version, git_repo, ssh_repo)
+
     def update_framework(self, protocol):
-        self.git.set_protocol(protocol)
+        self.mk_git.set_protocol(protocol)
 
-        monkey_home = self._monkey_home()
-
-        if os.path.exists(monkey_home):
-            self.git.update(monkey_home)
+        if os.path.exists(self.mk_home):
+            self.mk_git.update(self.mk_home)
         else:
-            self.git.clone(monkey_home)
-
+            self.mk_git.clone(self.mk_home)
 
         # Cleanup and rebuild Monkey
         cpath = os.getcwd()
-        os.chdir(monkey_home)
-        monkey = Monkey(monkey_home)
-        if os.path.exists("./Makefile"):
-            monkey.make_clean()
-        monkey.configure()
-        monkey.make_build()
-        os.chdir(cpath)
+        os.chdir(self.mk_home)
 
-        exit(0)
+        self.mk_git.snapshot()
+        self.monkey.configure()
+        if os.path.exists("./Makefile"):
+            self.monkey.make_clean()
+
+        self.monkey.make_build()
+        os.chdir(cpath)
 
     def run_webservice(self):
         ws = self.service
+
+        if self.rebuild_monkey is True:
+            # Make sure Monkey sources match the snapshot
+            self.mk_git.snapshot()
+
+            # Cleanup and rebuild Monkey
+            cpath = os.getcwd()
+            os.chdir(self.mk_home)
+
+            if os.path.exists("./Makefile"):
+                self.monkey.make_clean()
+
+                self.monkey.configure()
+                self.monkey.make_build()
+                os.chdir(cpath)
 
         makefile = "%s/Makefile" % (ws)
         makefile_in = "%s/Makefile.in" % (ws)
@@ -148,9 +310,9 @@ class Duda:
             exit(1)
 
         # Monkey headers
-        mk_inc = self._monkey_home() + "/src/include"
-        mk_duda = self._monkey_home() + "/plugins/duda/src"
-	mk_packages = self._monkey_home() + "/plugins/duda/"
+        mk_inc = self.mk_home + "/src/include"
+        mk_duda = self.mk_home + "/plugins/duda/src"
+	mk_packages = self.mk_home + "/plugins/duda/"
 
         # Read the Makefile.in file
         f = open(makefile_in, "r")
@@ -169,8 +331,8 @@ class Duda:
         f.close()
 
         # Cleanup web service and rebuild
-        execute("Clean Web Service\t", "make -C " + ws + " clean")
-        execute("Build Web Service\t", "make -C " + ws)
+        execute("WebService: clean", "make -C " + ws + " clean")
+        execute("WebService: build", "make -C " + ws)
 
         # Get services
         services = []
@@ -181,13 +343,13 @@ class Duda:
                 services.append({'name': entry[:-5], 'filename': entry})
 
         # Setting up virtual host
-        vhost = self._monkey_home() + "/conf/sites/default"
+        vhost = self.mk_home + "/conf/sites/default"
         f = open(vhost, "r")
         lines = f.readlines()
         f.close()
 
         # Setting up web services
-        print "[+] Configuring HTTP Server\t",
+        print "[+] %-30s" % "Monkey: configure HTTP Server",
         raw = ""
         for line in lines:
             if line.startswith('[WEB_'):
@@ -205,7 +367,7 @@ class Duda:
         f.close()
 
         # Setting up Duda plugin configuration
-        duda = self._monkey_home() + "/conf/plugins/duda/duda.conf"
+        duda = self.mk_home + "/conf/plugins/duda/duda.conf"
         f = open(duda, "r")
         lines = f.readlines()
         f.close()
@@ -222,7 +384,7 @@ class Duda:
         f.close()
 
         # Setting up Monkey
-        monkey = self._monkey_home() + "/conf/monkey.conf"
+        monkey = self.mk_home + "/conf/monkey.conf"
         f = open(monkey, "r")
         lines = f.readlines()
         f.close()
@@ -240,19 +402,19 @@ class Duda:
 
         print "[OK]"
 
-        http = self._monkey_home() + "/bin/monkey"
+        http = self.mk_home + "/bin/monkey"
 
         try:
-            execute("Running HTTP Server\t\t[http://localhost:%s]\n" % str(self.port), http, False)
+            service = "[http://localhost:%s]" % str(self.port)
+            execute("Running HTTP Server            %s\n" % service, http, False)
         except:
             print "\nDone!"
 
     def reset(self):
-        mh = self._monkey_home()
-        self.git.remove(mh)
+        self.mk_git.remove(self.mk_home)
 
     def print_version(self):
-        print "Duda Client Manager - v0.1"
+        print "Duda Client Manager - v0.2"
         print "http://monkey-project.com\n"
 
     def print_help(self):
@@ -260,16 +422,19 @@ class Duda:
         print "Options:"
         print "  -p TCP_PORT\t\tSet TCP port (default 2001)"
         print "  -w WEB_SERVICE\tSpecify web service source path"
-        print "  -s\t\t\tClone/Update using SSH"
-        print "  -g\t\t\tClone/Update using GIT"
+        print "  -s\t\t\tClone/Update Monkey sources using SSH"
+        print "  -g\t\t\tClone/Update Monkey sources using GIT"
+        print "  -f\t\t\tDo not rebuild Monkey (fast-run)"
         print "  -r\t\t\tReset environment"
         print "  -h\t\t\tPrint this help"
         print "  -v\t\t\tPrint version"
 
     def get_arguments(self):
+        update = None
+
         # Reading command line arguments
         try:
-            optlist, args = getopt.getopt(sys.argv[1:], 'sgrhvw:p:')
+            optlist, args = getopt.getopt(sys.argv[1:], 'sgfrhvw:p:')
         except getopt.GetoptError:
             self.print_help()
             sys.exit(2)
@@ -280,17 +445,14 @@ class Duda:
         # Check options
         for op, arg in optlist:
             if op == '-s':
-                self.update_framework(PROTOCOL_SSH)
-                exit(0)
-                break
+                update = PROTOCOL_SSH
             elif op == '-g':
-                self.update_framework(PROTOCOL_GIT)
-                exit(0)
-                break
+                update = PROTOCOL_GIT
+            elif op == '-f':
+                self.rebuild_monkey = False
             elif op == '-r':
                 self.reset()
                 exit(0)
-                break
             elif op == '-h':
                 self.print_help()
                 sys.exit(0)
@@ -306,6 +468,14 @@ class Duda:
                 break
             elif op == '-w':
                 self.service = arg
+                self.config_requirements()
+
+        if update is not None:
+            if self.rebuild_monkey is False:
+                print "Error: you cannot mix the flag -f with -g or -s"
+                exit(1)
+
+            self.update_framework(update)
 
         if self.service:
             self.run_webservice()
