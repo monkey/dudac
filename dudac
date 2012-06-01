@@ -20,27 +20,13 @@ import os
 import sys
 import shutil
 import getopt
-import commands
 import ConfigParser
+
+from git import GitProject
+from utils import *
 
 PROTOCOL_GIT = 0
 PROTOCOL_SSH = 1
-
-def execute(header, command, status=True):
-    print "[+] %-30s" % (header),
-    sys.stdout.flush()
-
-    ret = commands.getstatusoutput(command)
-    if ret[0] == 0:
-        if status is True:
-            print "[OK]"
-    else:
-        if status is True:
-            print "[FAILED]\n"
-        print ret[1]
-        exit(1)
-
-    return ret
 
 class DudaConfig(ConfigParser.ConfigParser):
     def __init__(self):
@@ -97,67 +83,11 @@ class Monkey:
     def system(self, cmd):
         return commands.getstatusoutput(cmd)
 
-class MonkeyGIT:
-    # Default repositories
-    version  = 'master'
-    git_repo = 'git://git.monkey-project.com/monkey'
-    ssh_repo = 'ssh://git.monkey-project.com/srv/git/monkey'
-    recent_update   = False
-    recent_master   = False
-    recent_snapshot = False
-
+class MonkeyGIT (GitProject):
     def __init__(self):
-        pass
-
-    def set_protocol(self, protocol):
-        if protocol == PROTOCOL_GIT:
-            self.protocol = self.git_repo
-        elif protocol == PROTOCOL_SSH:
-            self.protocol = self.ssh_repo
-
-    def setup(self, version, git_repo, ssh_repo):
-        if version is not None:
-            self.version = version
-
-        if git_repo is not None:
-            self.git_repo = git_repo
-
-        if ssh_repo is not None:
-            self.ssh_repo = ssh_repo
-
-    def clone(self, to):
-        cmd = "git clone " + self.protocol + " " + to
-        execute("Monkey: cloning source code", cmd)
-
-    def update(self, to):
-        if self.recent_update is True:
-            return
-
-        self.master()
-
-        cpath = os.getcwd()
-        os.chdir(to)
-        cmd = "git pull"
-        execute("GIT: updating Monkey", cmd)
-        os.chdir(cpath)
-
-        self.recent_update = True
-
-    def remove(self, path):
-        cmd = "rm -rf- %s" % path
-        print "[+] Deleting Monkey code...",
-        try:
-                shutil.rmtree(path)
-                print "\t[OK]"
-        except:
-                print "\t[FAILED]"
-
-    def run(self, cmd):
-        return commands.getstatusoutput(cmd)
-
-    def print_line(self, l):
-        print l,
-        sys.stdout.flush()
+        git_repo = 'git://git.monkey-project.com/monkey'
+        ssh_repo = 'ssh://git.monkey-project.com/srv/git/monkey'
+        GitProject.__init__(self, 'Monkey', git_repo, ssh_repo)
 
     def home(self):
         # Check our user temporal directory
@@ -166,60 +96,18 @@ class MonkeyGIT:
 
         return "%s/monkey" % (dudac_home)
 
-    # Return the current head hash
-    def master(self):
-        mkh = self.home()
-        if os.path.exists(mkh) is False:
-            pass
+class DudaGIT(GitProject):
+    def __init__(self):
+        git_repo = 'git://git.monkey-project.com/duda'
+        ssh_repo = 'ssh://git.monkey-project.com/srv/git/duda'
+        GitProject.__init__(self, 'Duda', git_repo, ssh_repo)
 
-        if self.recent_master is True:
-            return
+    def home(self):
+        # Check our user temporal directory
+        home = os.getenv('USERPROFILE') or os.getenv('HOME')
+        dudac_home = "%s/.dudac" % (home)
 
-        cmd = 'git checkout master'
-        cpath = os.getcwd()
-        os.chdir(self.home())
-        execute("GIT: checkout master", cmd)
-        os.chdir(cpath)
-
-        self.recent_master = True
-
-    # A snapshot takes the value of the 'version' key and set the GIT repository
-    # to the specified point, a few examples:
-    #
-    #    version = master
-    #    version = commit@dc2d07d8ac991392aaf8de8ea82cc60257a15670
-    #    version = branch@my_devel_branch
-    #    version = tag@v1.5
-    #
-    def snapshot(self):
-        if self.recent_snapshot is True:
-            return
-
-        v = self.version
-
-        try:
-            if v == 'master':
-                cmd = 'git checkout master'
-            elif v.startswith('commit') or v.startswith('tag') or v.startswith('branch'):
-                arr = v.split('@')
-                cmd = 'git checkout %s' % (arr[1])
-            else:
-                print "Error: Invalid 'version' value"
-                exit(1)
-        except:
-            print "Error: invalid 'version' value"
-            exit(1)
-
-
-        # Make sure to go back to master
-        self.master()
-
-        cpath = os.getcwd()
-        os.chdir(self.home())
-        execute("GIT: switch to new head", cmd)
-        os.chdir(cpath)
-
-        self.recent_snapshot = True
+        return "%s/duda" % (dudac_home)
 
 class Duda:
     def __init__(self):
@@ -229,7 +117,9 @@ class Duda:
         self.port = 2001
         self.rebuild_monkey = True
         self.mk_git = MonkeyGIT()
+        self.duda_git = DudaGIT()
         self.mk_home = self.mk_git.home()
+        self.duda_home = self.duda_git.home()
         self.monkey  = Monkey(self.mk_home)
         self.get_arguments()
 
@@ -252,38 +142,58 @@ class Duda:
         config = DudaConfig()
         config.open(config_file)
 
-        version  = None
-        git_repo = None
-        ssh_repo = None
+        mk_version    = None
+        mk_git_repo   = None
+        mk_ssh_repo   = None
+        duda_version  = None
+        duda_git_repo = None
+        duda_ssh_repo = None
 
         for h in config.get_handlers():
-            if h == "MONKEY":
+            if h == 'MONKEY':
                 # Get key/values
-                version  = config.get_key(h, 'version')
-                git_repo = config.get_key(h, 'git_repo')
-                ssh_repo = config.get_key(h, 'ssh_repo')
+                mk_version  = config.get_key(h, 'version')
+                mk_git_repo = config.get_key(h, 'git_repo')
+                mk_ssh_repo = config.get_key(h, 'ssh_repo')
+            elif h == 'DUDA':
+                duda_version  = config.get_key(h, 'version')
+                duda_git_repo = config.get_key(h, 'git_repo')
+                duda_ssh_repo = config.get_key(h, 'ssh_repo')
 
-        self.mk_git.setup(version, git_repo, ssh_repo)
+        self.mk_git.setup(mk_version, mk_git_repo, mk_ssh_repo)
+        self.duda_git.setup(duda_version, duda_git_repo, duda_ssh_repo)
 
     def update_framework(self, protocol):
         self.mk_git.set_protocol(protocol)
+        self.duda_git.set_protocol(protocol)
 
         if os.path.exists(self.mk_home):
             self.mk_git.update(self.mk_home)
         else:
             self.mk_git.clone(self.mk_home)
 
+        if os.path.exists(self.duda_home):
+            self.duda_git.update(self.duda_home)
+        else:
+            self.duda_git.clone(self.duda_home)
+
         # Cleanup and rebuild Monkey
         cpath = os.getcwd()
         os.chdir(self.mk_home)
 
         self.mk_git.snapshot()
+
+        self.merge()
         self.monkey.configure()
+
         if os.path.exists("./Makefile"):
             self.monkey.make_clean()
 
         self.monkey.make_build()
         os.chdir(cpath)
+
+    def merge(self):
+        self.duda_git.archive_to(self.mk_git.home() + '/plugins/duda/')
 
     def run_webservice(self):
         ws = self.service
@@ -291,12 +201,14 @@ class Duda:
         if self.rebuild_monkey is True:
             # Make sure Monkey sources match the snapshot
             self.mk_git.snapshot()
+            self.duda_git.snapshot()
 
             # Cleanup and rebuild Monkey
             cpath = os.getcwd()
             os.chdir(self.mk_home)
 
             if os.path.exists("./Makefile"):
+                self.merge()
                 self.monkey.make_clean()
 
                 self.monkey.configure()
@@ -414,7 +326,7 @@ class Duda:
         self.mk_git.remove(self.mk_home)
 
     def print_version(self):
-        print "Duda Client Manager - v0.2"
+        print "Duda Client Manager - v0.3"
         print "http://monkey-project.com\n"
 
     def print_help(self):
