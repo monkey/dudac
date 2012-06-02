@@ -57,9 +57,13 @@ class Monkey:
         if self.recent_configure is True:
             return
 
-        configure = "%s/./configure --debug --disable-plugins=auth,cheetah,mandril,logger,palm,dirlisting --enable-plugins=liana,duda" % (self.mk_path)
+        cpath = os.getcwd()
+        os.chdir(self.mk_path)
+
+        configure = "./configure --debug --disable-plugins=auth,cheetah,mandril,logger,palm,dirlisting --enable-plugins=liana,duda"
         execute("Monkey: prepare build", configure)
 
+        os.chdir(cpath)
         self.recent_configure = True
 
     def make_build(self):
@@ -73,6 +77,9 @@ class Monkey:
 
     def make_clean(self):
         if self.recent_clean is True:
+            return
+
+        if os.path.exists(self.mk_path + '/Makefile') is False:
             return
 
         cmd = "make -C %s clean" % (self.mk_path)
@@ -119,23 +126,28 @@ class Duda:
         self.mk_git = MonkeyGIT()
         self.duda_git = DudaGIT()
         self.mk_home = self.mk_git.home()
-        self.duda_home = self.duda_git.home()
-        self.monkey  = Monkey(self.mk_home)
+        self.duda_home  = self.duda_git.home()
+        self.dudac_wd   = '%s/.dudac' % (os.getenv('USERPROFILE') or os.getenv('HOME'))
+        self.stage_home = self.dudac_wd + '/stage/'
+        self.monkey  = Monkey(self.stage_home + 'monkey/')
         self.get_arguments()
+
+        print self.stage_home
+        exit(0)
 
     # This routine read the config.dudac configuration file which is
     # optional inside every web service source code. It specifies the
     # Monkey sources requirements and perform the right setup
     def config_requirements(self):
-        ws = self.service
+        ws = os.path.abspath(self.service)
 
         config_file = os.path.abspath("%s/config.dudac" % (ws))
-        if os.path.isdir(ws) == False:
+        if not os.path.isdir(ws):
             print "Error: Invalid web service directory"
             exit(1)
 
         # Check if the service have a configuration file
-        if os.path.isfile(config_file) == False:
+        if os.path.isfile(config_file) is False:
             return
 
         # Read the configuration
@@ -183,7 +195,7 @@ class Duda:
 
         self.mk_git.snapshot()
 
-        self.merge()
+        self.merge_on_stage()
         self.monkey.configure()
 
         if os.path.exists("./Makefile"):
@@ -192,39 +204,41 @@ class Duda:
         self.monkey.make_build()
         os.chdir(cpath)
 
-    def merge(self):
-        self.duda_git.archive_to(self.mk_git.home() + '/plugins/duda/')
+    def merge_on_stage(self):
+        self.mk_git.archive_to(self.stage_home + '/monkey')
+        self.duda_git.archive_to(self.stage_home + '/monkey/plugins/duda')
 
     def run_webservice(self):
-        ws = self.service
+        ws = os.path.abspath(self.service)
+        monkey_stage = self.monkey.mk_path
 
         if self.rebuild_monkey is True:
             # Make sure Monkey sources match the snapshot
             self.mk_git.snapshot()
             self.duda_git.snapshot()
+            self.merge_on_stage()
 
             # Cleanup and rebuild Monkey
             cpath = os.getcwd()
-            os.chdir(self.mk_home)
+            os.chdir(monkey_stage)
 
             if os.path.exists("./Makefile"):
-                self.merge()
                 self.monkey.make_clean()
 
                 self.monkey.configure()
                 self.monkey.make_build()
-                os.chdir(cpath)
+            os.chdir(cpath)
 
         makefile = "%s/Makefile" % (ws)
         makefile_in = "%s/Makefile.in" % (ws)
-        if os.path.isdir(ws) == False or os.path.exists(makefile_in) == False:
-            print "Error: Invalid web service directory"
+        if os.path.isdir(ws) is False or os.path.exists(makefile_in) is False:
+            print "Error: Invalid web service directory xx"
             exit(1)
 
         # Monkey headers
-        mk_inc = self.mk_home + "/src/include"
-        mk_duda = self.mk_home + "/plugins/duda/src"
-	mk_packages = self.mk_home + "/plugins/duda/"
+        mk_inc = monkey_stage + "/src/include"
+        mk_duda = monkey_stage + "/plugins/duda/src"
+	mk_packages = monkey_stage + "/plugins/duda/"
 
         # Read the Makefile.in file
         f = open(makefile_in, "r")
@@ -255,7 +269,7 @@ class Duda:
                 services.append({'name': entry[:-5], 'filename': entry})
 
         # Setting up virtual host
-        vhost = self.mk_home + "/conf/sites/default"
+        vhost = monkey_stage + "/conf/sites/default"
         f = open(vhost, "r")
         lines = f.readlines()
         f.close()
@@ -279,7 +293,7 @@ class Duda:
         f.close()
 
         # Setting up Duda plugin configuration
-        duda = self.mk_home + "/conf/plugins/duda/duda.conf"
+        duda = monkey_stage + "/conf/plugins/duda/duda.conf"
         f = open(duda, "r")
         lines = f.readlines()
         f.close()
@@ -296,7 +310,7 @@ class Duda:
         f.close()
 
         # Setting up Monkey
-        monkey = self.mk_home + "/conf/monkey.conf"
+        monkey = monkey_stage + "/conf/monkey.conf"
         f = open(monkey, "r")
         lines = f.readlines()
         f.close()
@@ -314,7 +328,7 @@ class Duda:
 
         print "[OK]"
 
-        http = self.mk_home + "/bin/monkey"
+        http = monkey_stage + "bin/monkey"
 
         try:
             service = "[http://localhost:%s]" % str(self.port)

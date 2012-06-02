@@ -28,6 +28,7 @@ def execute(header, command, status=True):
     else:
         if status is True:
             print "[FAILED]\n"
+        print "Error Command: '%s'\n--" % command
         print ret[1]
         exit(1)
 

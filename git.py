@@ -16,6 +16,7 @@
 
 import os
 import sys
+import shutil
 import commands
 
 from utils import *
@@ -75,7 +76,7 @@ class GitProject(object):
         self.recent_update = True
 
     def remove(self, path):
-        cmd = "rm -rf- %s" % path
+        cmd = "rm -rf %s" % path
         print "[+] Deleting %s code..." % (self.project_name),
         try:
                 shutil.rmtree(path)
@@ -108,7 +109,7 @@ class GitProject(object):
         os.chdir(home)
         execute("GIT %s: checkout master" % (self.project_name), cmd)
         os.chdir(cpath)
-        #xprint os.getcwd()
+
         self.recent_master = True
 
     def archive_to(self, path):
@@ -150,6 +151,7 @@ class GitProject(object):
 
         cpath = os.getcwd()
         os.chdir(self.home())
+        cmd = 'git stash && git checkout master && %s' % (cmd)
         execute("GIT %s: switch to new head" % (self.project_name), cmd)
         os.chdir(cpath)
 
