@@ -17,6 +17,16 @@
 import sys
 import commands
 
+ANSI_BOLD    = "\033[1m"
+ANSI_CYAN    = "\033[36m"
+ANSI_MAGENTA = "\033[35m"
+ANSI_RED     = "\033[31m"
+ANSI_YELLOW  = "\033[33m"
+ANSI_BLUE    = "\033[34m"
+ANSI_GREEN   = "\033[32m"
+ANSI_WHITE   = "\033[37m"
+ANSI_RESET   = "\033[0m"
+
 def execute(header, command, status=True):
     print "[+] %-30s" % (header),
     sys.stdout.flush()
@@ -33,3 +43,13 @@ def execute(header, command, status=True):
         exit(1)
 
     return ret
+
+def print_bold(msg):
+    print ANSI_BOLD + msg + ANSI_RESET
+
+def print_color(msg, color, is_bold=False):
+    text = color + msg + ANSI_RESET
+    if is_bold is True:
+        text = ANSI_BOLD + text
+
+    print text

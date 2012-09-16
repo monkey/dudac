@@ -60,7 +60,7 @@ class Monkey:
         cpath = os.getcwd()
         os.chdir(self.mk_path)
 
-        configure = "./configure --debug --disable-plugins=auth,cheetah,mandril,logger,palm,dirlisting --enable-plugins=liana,duda"
+        configure = "./configure --debug --disable-plugins='*' --enable-plugins='liana,duda'"
         execute("Monkey: prepare build", configure)
 
         os.chdir(cpath)
@@ -132,7 +132,6 @@ class Duda:
         self.monkey  = Monkey(self.stage_home + 'monkey/')
         self.get_arguments()
 
-        print self.stage_home
         exit(0)
 
     # This routine read the config.dudac configuration file which is
@@ -236,8 +235,8 @@ class Duda:
             exit(1)
 
         # Monkey headers
-        mk_inc = monkey_stage + "/src/include"
-        mk_duda = monkey_stage + "/plugins/duda/src"
+        mk_inc      = monkey_stage + "/src/include"
+        mk_duda     = monkey_stage + "/plugins/duda/src"
 	mk_packages = monkey_stage + "/plugins/duda/"
 
         # Read the Makefile.in file
@@ -286,9 +285,31 @@ class Duda:
         for s in services:
             raw += "[WEB_SERVICE]\n"
             raw += "    Name " + s['name'] + "\n"
-            raw += "    Enabled on\n\n"
+            raw += "    Enabled on\n"
+
+            html = os.path.abspath(self.service) + '/html/'
+            if os.path.exists(html):
+                raw += "    DocumentRoot %s\n" % (html)
+            raw += "\n"
 
         f = open(vhost, "w")
+        f.write(raw)
+        f.close()
+
+        # Make sure Duda plugin is enabled on plugins.load
+        plugins = monkey_stage + "/conf/plugins.load"
+        f = open(plugins, "r")
+        lines = f.readlines()
+        f.close()
+
+        raw = ""
+        for line in lines:
+            if line.startswith("    # Load") and line.strip().endswith("-duda.so"):
+                line = "    " + line[6:]
+
+            raw += line
+
+        f = open(plugins, "w")
         f.write(raw)
         f.close()
 
@@ -301,7 +322,7 @@ class Duda:
         raw = ""
         for line in lines:
             if line.startswith("    ServicesRoot"):
-                raw += "    ServicesRoot " + ws + "\n\n"
+                raw += "    ServicesRoot " + ws + "\n"
             else:
                 raw += line
 
@@ -340,8 +361,9 @@ class Duda:
         self.mk_git.remove(self.mk_home)
 
     def print_version(self):
-        print "Duda Client Manager - v0.3"
-        print "http://monkey-project.com\n"
+        print_bold("Duda Client Manager - v0.4")
+        print_color("http://duda.io", ANSI_YELLOW, True)
+        print_color("http://monkey-project.com\n", ANSI_YELLOW, True)
 
     def print_help(self):
         print "Usage: dudac [-g|-s] [-h] [-v] -w WEB_SERVICE_PATH\n"
