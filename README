@@ -17,6 +17,17 @@ Usage
 
    # firefox http://localhost:2001
 
+Examples
+========
+If you want to see some Duda web services examples clone the following
+repository:
+
+    git clone git://git.monkey-project.com/duda-examples
+
+Then you can do something like:
+
+   # ./dudac -f -w /path/to/duda-examples/001_hello_world
+
 Author
 ======
 Eduardo Silva <edsiper@gmail.com>
