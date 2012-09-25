@@ -412,7 +412,6 @@ class Duda:
                     exit(1)
                 self.port = arg
             elif op == '-v':
-                self.print_version()
                 sys.exit(0)
                 break
             elif op == '-w':
