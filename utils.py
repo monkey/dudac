@@ -36,9 +36,15 @@ def execute(header, command, status=True):
         if status is True:
             print "[OK]"
         if ret[1].find('warning') > 0:
-            print ANSI_BOLD + ANSI_RED + "--- Compilation Warning ---" + ANSI_RESET
-            print ANSI_GREEN + ret[1] + ANSI_RESET
-            print ANSI_BOLD + ANSI_RED + "--- * --- * --- * --- * ---" + ANSI_RESET
+            print ANSI_BOLD + ANSI_RED + "--- Compilation Warnings ---" + ANSI_RESET
+
+            lines = ret[1].split('\n')
+            for l in lines:
+                if l.find('warning') > 0:
+                    print ANSI_GREEN + l + ANSI_RESET
+
+            print ANSI_BOLD + ANSI_RED + "--- * --- * --- * --- * ---"
+            print ANSI_RESET
     else:
         if status is True:
             print "[FAILED]\n"
