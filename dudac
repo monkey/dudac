@@ -290,6 +290,11 @@ class Duda:
             html = os.path.abspath(self.service) + '/html/'
             if os.path.exists(html):
                 raw += "    DocumentRoot %s\n" % (html)
+
+            confdir = os.path.abspath(self.service) + '/conf/'
+            if os.path.exists(confdir):
+                raw += "    ConfDir %s\n" % (confdir)
+
             raw += "\n"
 
         f = open(vhost, "w")
@@ -362,7 +367,7 @@ class Duda:
         self.duda_git.remove(self.duda_home)
 
     def print_version(self):
-        print_bold("Duda Client Manager - v0.4")
+        print_bold("Duda Client Manager - v0.5")
         print_color("http://duda.io", ANSI_YELLOW, True)
         print_color("http://monkey-project.com\n", ANSI_YELLOW, True)
 
