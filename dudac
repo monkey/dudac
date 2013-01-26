@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright (C) 2012, Eduardo Silva <edsiper@gmail.com>
+# Copyright (C) 2012-2013, Eduardo Silva <edsiper@gmail.com>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -357,10 +357,19 @@ class Duda:
         http = monkey_stage + "bin/monkey"
 
         try:
-            service = "[http://localhost:%s]" % str(self.port)
-            execute("Running HTTP Server            %s\n" % service, http, False)
-        except:
+            d = 0
+            domain = "[http://localhost:%s/" % str(self.port)
+            schema = ""
+            for s in services:
+                if d > 0:
+                    schema += "                                   "
+                schema += domain + services[d]['name'] + "]\n"
+                d += 1
+
+            execute("Running HTTP Server            %s" % schema, http, False)
+        except (RuntimeError, TypeError, NameError):
             print "\nDone!"
+            raise
 
     def reset(self):
         self.mk_git.remove(self.mk_home)
