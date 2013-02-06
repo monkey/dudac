@@ -231,7 +231,7 @@ class Duda:
         makefile = "%s/Makefile" % (ws)
         makefile_in = "%s/Makefile.in" % (ws)
         if os.path.isdir(ws) is False or os.path.exists(makefile_in) is False:
-            print "Error: Invalid web service directory xx"
+            print "Error: Invalid web service directory " + ws
             exit(1)
 
         # Monkey headers
@@ -239,21 +239,34 @@ class Duda:
         mk_duda     = monkey_stage + "/plugins/duda/src"
 	mk_packages = monkey_stage + "/plugins/duda/"
 
+
         # Read the Makefile.in file
-        f = open(makefile_in, "r")
-        lines = f.readlines()
-        f.close()
+        mk_ins = []
+        for root, dirs, files in os.walk(ws):
+            for file in files:
+                if file == 'Makefile.in':
+                    path = "%s/%s" % (root, file)
+                    mk_ins.append(root)
 
-        raw = ""
-        for line in lines:
-            if line.startswith("INCDIR"):
-                raw += "INCDIR = " + mk_inc + " -I" + mk_duda + " -I" + mk_packages + "\n"
-            else:
-                raw += line
 
-        f = open(makefile, "w")
-        f.write(raw)
-        f.close()
+        for mk in mk_ins:
+            mk_in = "%s/Makefile.in" % (mk)
+
+            f = open(mk_in, "r")
+            lines = f.readlines()
+            f.close()
+
+            raw = ""
+            for line in lines:
+                if line.startswith("INCDIR"):
+                    raw += "INCDIR = " + mk_inc + " -I" + mk_duda + " -I" + mk_packages + "\n"
+                else:
+                    raw += line
+
+                    makefile = "%s/Makefile" % (mk)
+                    f = open(makefile, "w")
+                    f.write(raw)
+                    f.close()
 
         # Cleanup web service and rebuild
         execute("WebService: clean", "make -C " + ws + " clean")
