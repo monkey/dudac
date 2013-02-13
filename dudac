@@ -280,6 +280,11 @@ class Duda:
             if os.path.isfile(p) and entry.endswith(".duda"):
                 services.append({'name': entry[:-5], 'filename': entry})
 
+        # check that services exists
+        if len(services) == 0:
+            print "Error: i could not find Duda services under", ws
+            exit(1)
+
         # Setting up virtual host
         vhost = monkey_stage + "/conf/sites/default"
         f = open(vhost, "r")
