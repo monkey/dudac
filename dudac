@@ -229,13 +229,15 @@ class Duda:
         monkey_stage = self.monkey.mk_path
 
         if self.rebuild_monkey is True:
+            # Backup our original path
+            cpath = os.getcwd()
+
             # Make sure Monkey sources match the snapshot
             self.mk_git.snapshot()
             self.duda_git.snapshot()
             self.merge_on_stage()
 
             # Cleanup and rebuild Monkey
-            cpath = os.getcwd()
             os.chdir(monkey_stage)
 
             if os.path.exists("./Makefile"):
@@ -243,6 +245,8 @@ class Duda:
 
                 self.monkey.configure()
                 self.monkey.make_build()
+
+            # Restore path
             os.chdir(cpath)
 
         makefile = "%s/Makefile" % (ws)
@@ -256,7 +260,6 @@ class Duda:
         mk_duda     = monkey_stage + "/plugins/duda/src"
 	mk_packages = monkey_stage + "/plugins/duda/"
 
-
         # Read the Makefile.in file
         mk_ins = []
         for root, dirs, files in os.walk(ws):
@@ -264,7 +267,6 @@ class Duda:
                 if file == 'Makefile.in':
                     path = "%s/%s" % (root, file)
                     mk_ins.append(root)
-
 
         for mk in mk_ins:
             mk_in = "%s/Makefile.in" % (mk)
