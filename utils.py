@@ -54,6 +54,14 @@ def execute(header, command, status=True):
 
     return ret
 
+def print_msg(msg, status = 0):
+    print "[+] %-30s" % (msg),
+
+    if status == 0:
+        print "[FAILED]\n"
+    else:
+        print "[OK]"
+
 def print_bold(msg):
     print ANSI_BOLD + msg + ANSI_RESET
 

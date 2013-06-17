@@ -139,6 +139,7 @@ class Duda:
         self.service = None
         self.port = 2001
         self.SSL = False
+        self.SSL_default = False
         self.rebuild_monkey = True
         self.mk_git = MonkeyGIT()
         self.duda_git = DudaGIT()
@@ -304,82 +305,6 @@ class Duda:
             print "Error: i could not find Duda services under", ws
             exit(1)
 
-        # Configure Transport Layer for SSL
-        if self.SSL is True:
-            plgs = monkey_stage + "/conf/plugins.load"
-            f = open(plgs, "r")
-            lines = f.readlines()
-            f.close()
-
-            raw = ""
-            for line in lines:
-                if line.find('monkey-polarssl') > 0 and self.SSL is True:
-                    raw += line.replace("# Load", "Load")
-                else:
-                    raw += line
-
-            f = open(plgs, "w")
-            f.write(raw)
-            f.close()
-
-
-            # Check if SSL certificates exists
-            sslconf = monkey_stage + "/conf/plugins/polarssl/polarssl.conf"
-            f = open(sslconf, "r")
-            lines = f.readlines()
-            f.close()
-
-            certificate_file = None
-            rsa_key_file = None
-            dh_param_file = None
-            for line in lines:
-                row = line.strip()
-                if row.startswith('CertificateFile'):
-                    key, val = row.split()
-                    tmp = monkey_stage + "/conf/plugins/polarssl/" + val
-                    if os.path.exists(tmp):
-                        certificate_file = tmp
-                elif row.startswith('RSAKeyFile'):
-                    key, val = row.split()
-                    tmp = monkey_stage + "/conf/plugins/polarssl/" + val
-                    if os.path.exists(tmp):
-                        rsa_key_file = tmp
-                elif row.startswith('DHParameterFile'):
-                    key, val = row.split()
-                    tmp = monkey_stage + "/conf/plugins/polarssl/" + val
-                    if os.path.exists(tmp):
-                        dh_param_file = tmp
-
-            # Generate Certificates if they dont exists
-            p = monkey_stage + "/conf/plugins/polarssl/"
-            if rsa_key_file is None:
-                cmd = "openssl genrsa -out " + p + "rsa_key.pem 1024"
-                execute("SSL: Generate RSA", cmd)
-                rsa_key_file = p + "rsa_key.pem"
-
-            if certificate_file is None:
-                cmd = "openssl req -new -x509 -key " + rsa_key_file + \
-                      " -out " + p + "srv_cert.pem" + " -days 1095 -subj '/C=US'"
-                execute("SSL: Generate Certificate", cmd)
-                certificate_file = p + "srv_cert.pem"
-
-            if dh_param_file is None:
-                cmd = "openssl dhparam -out " + p + "dhparam.pem 1024"
-                execute("SSL: Generate DH Params", cmd)
-                dh_param_file = p + "dhparam.pem"
-
-
-            # Create new config and override polarssl.conf file
-            raw  = "[SSL]\n"
-            raw += "    CertificateFile " + certificate_file + "\n"
-            raw += "    RSAKeyFile      " + rsa_key_file + "\n"
-            raw += "    DHParameterFile " + dh_param_file + "\n\n"
-
-            f = open(sslconf, "w")
-            f.write(raw)
-            f.close()
-
-
         # Setting up virtual host
         vhost = monkey_stage + "/conf/sites/default"
         f = open(vhost, "r")
@@ -462,8 +387,16 @@ class Duda:
         for line in lines:
             if line.startswith("    Port"):
                 raw += "    Port " + str(self.port) + "\n"
-            elif line.startswith("    TransportLayer") and self.SSL is True:
-                raw += "    TransportLayer polarssl\n"
+            elif line.startswith("    TransportLayer") and self.rebuild_monkey is True:
+                if self.SSL is True:
+                    raw += "    TransportLayer polarssl\n"
+                    self.SSL_default = True
+                else:
+                    raw += "    TransportLayer liana\n"
+                    self.SSL_default = False
+            elif line.startswith("    TransportLayer") and line.find('polarssl') > 0:
+                self.SSL_default = True
+                raw += line
             else:
                 raw += line
 
@@ -473,10 +406,14 @@ class Duda:
 
         print "[OK]"
 
+        # Configure Transport Layer for SSL
+        if self.SSL_default is True:
+            self.SSL_configure(monkey_stage)
+
         http = monkey_stage + "bin/monkey"
 
         try:
-            if self.SSL is True:
+            if self.SSL_default is True:
                 prot = "https"
             else:
                 prot = "http"
@@ -494,6 +431,81 @@ class Duda:
         except (RuntimeError, TypeError, NameError):
             print "\nDone!"
             raise
+
+    def SSL_configure(self, monkey_stage):
+        plgs = monkey_stage + "/conf/plugins.load"
+        f = open(plgs, "r")
+        lines = f.readlines()
+        f.close()
+
+        raw = ""
+        for line in lines:
+            if line.find('monkey-polarssl') > 0 and self.SSL is True:
+                raw += line.replace("# Load", "Load")
+            else:
+                raw += line
+
+        f = open(plgs, "w")
+        f.write(raw)
+        f.close()
+
+        # Check if SSL certificates exists
+        sslconf = monkey_stage + "/conf/plugins/polarssl/polarssl.conf"
+        f = open(sslconf, "r")
+        lines = f.readlines()
+        f.close()
+
+        certificate_file = None
+        rsa_key_file = None
+        dh_param_file = None
+        for line in lines:
+            row = line.strip()
+            if row.startswith('CertificateFile'):
+                key, val = row.split()
+                if os.path.exists(val):
+                    certificate_file = val
+            elif row.startswith('RSAKeyFile'):
+                key, val = row.split()
+                if os.path.exists(val):
+                    rsa_key_file = val
+            elif row.startswith('DHParameterFile'):
+                key, val = row.split()
+                if os.path.exists(val):
+                    dh_param_file = val
+
+        # Generate Certificates if they dont exists
+        p = monkey_stage + "/conf/plugins/polarssl/"
+        if rsa_key_file is None:
+            cmd = "openssl genrsa -out " + p + "rsa_key.pem 1024"
+            execute("SSL: Generate RSA", cmd)
+            rsa_key_file = p + "rsa_key.pem"
+        else:
+            print_msg("SSL: RSA       (cached)", True)
+
+        if certificate_file is None:
+            cmd = "openssl req -new -x509 -key " + rsa_key_file + \
+                " -out " + p + "srv_cert.pem" + " -days 1095 -subj '/C=US'"
+            execute("SSL: Generate Certificate", cmd)
+            certificate_file = p + "srv_cert.pem"
+        else:
+            print_msg("SSL: Cert      (cached)", True)
+
+        if dh_param_file is None:
+            cmd = "openssl dhparam -out " + p + "dhparam.pem 1024"
+            execute("SSL: Generate DH Params", cmd)
+            dh_param_file = p + "dhparam.pem"
+        else:
+            print_msg("SSL: DH Params (cached)", True)
+
+        # Create new config and override polarssl.conf file
+        raw  = "[SSL]\n"
+        raw += "    CertificateFile " + certificate_file + "\n"
+        raw += "    RSAKeyFile      " + rsa_key_file + "\n"
+        raw += "    DHParameterFile " + dh_param_file + "\n\n"
+
+        f = open(sslconf, "w")
+        f.write(raw)
+        f.close()
 
     def reset(self):
         self.mk_git.remove(self.mk_home)
