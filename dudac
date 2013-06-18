@@ -133,6 +133,26 @@ class DudaGIT(GitProject):
         return "%s/duda" % (dudac_home)
 
 class Duda:
+    # Default configuration directives for Monkey configuration
+    # file located under the [SERVER] section
+    MCONF_KNOWN = ['Port',
+                   'Listen',
+                   'Workers',
+                   'Timeout',
+                   'PidFile',
+                   'UserDir',
+                   'Indexfile',
+                   'HideVersion',
+                   'Resume',
+                   'User',
+                   'KeepAlive',
+                   'KeepAliveTimeout',
+                   'MaxKeepAliveRequest',
+                   'MaxRequestSize',
+                   'SymLink',
+                   'TransportLayer',
+                   'DefaultMimeType']
+
     def __init__(self):
         self.print_version()
         self.web_service = None
@@ -225,7 +245,7 @@ class Duda:
         self.mk_git.archive_to(self.stage_home + '/monkey')
         self.duda_git.archive_to(self.stage_home + '/monkey/plugins/duda')
 
-    def run_webservice(self):
+    def run_webservice(self, schema=None):
         ws = os.path.abspath(self.service)
         monkey_stage = self.monkey.mk_path
 
@@ -406,6 +426,66 @@ class Duda:
 
         print "[OK]"
 
+        # Schema
+        # ======
+        # Once the new monkey.conf Port and TransportLayer are set, we can start
+        # overriding the config if we have a schema. We do this at the end to do not
+        # mess with specific settings handled by the previous lines.
+        if schema is not None:
+            # Change direct Port global
+            if 'Port' in schema:
+                self.port = schema['Port']
+
+            # open the file and read it content
+            f = open(monkey, "r")
+            lines = f.readlines()
+            f.close()
+
+            # compose a new buffer
+            raw = ""
+            for line in lines:
+                row = line
+                key = None
+                val = None
+                kv  = []
+                if line.startswith("    "):
+                    # strip the indentation
+                    row = line[4:]
+
+                    # Lets see if this line can belong to a commented key/value
+                    if row[:2] == '# ':
+                        arr = row[2:].split()
+                        if len(arr) == 2 and arr[0][-1] != ':':
+                            if arr[0] in self.MCONF_KNOWN:
+                                # ok, its a known key and is commented, now lets check
+                                # if this key is bein overriden through the schema
+                                if not arr[0] in schema:
+                                    raw += line
+                                else:
+                                    raw += "    %s %s\n" % (arr[0], schema[arr[0]])
+
+                                continue
+
+                    kv = row.split()
+                    if len(kv) != 2:
+                        raw += line
+                        continue
+                    else:
+                        # Start replacing
+                        key = kv[0]
+                        val = kv[1]
+                        if key in schema:
+                            raw += "    %s %s\n" % (key, schema[key])
+                            continue
+
+
+                raw += line
+
+            # Flush our new content
+            f = open(monkey, "w")
+            f.write(raw)
+            f.close()
+
         # Configure Transport Layer for SSL
         if self.SSL_default is True:
             self.SSL_configure(monkey_stage)
@@ -512,7 +592,7 @@ class Duda:
         self.duda_git.remove(self.duda_home)
 
     def print_version(self):
-        print_bold("Duda Client Manager - v0.8")
+        print_bold("Duda Client Manager - v0.9")
         print_color("http://duda.io", ANSI_YELLOW, True)
         print_color("http://monkey-project.com\n", ANSI_YELLOW, True)
 
@@ -526,15 +606,43 @@ class Duda:
         print "  -f\t\t\tDo not rebuild Monkey (fast-run)"
         print "  -S\t\t\tWeb Service will run with SSL mode enabled"
         print "  -r\t\t\tReset environment"
+        print "  -M 'k1=v1,kn=vn'\tOverride some web server config key/value"
         print "  -h\t\t\tPrint this help"
         print "  -v\t\t\tPrint version"
 
+    # it creates a configuration schema to override the values of the main
+    # Monkey configuration file
+    def conf_schema(self, value):
+        if value.find(',') > 0:
+            entries = value.split(',')
+            if len(entries) == 0:
+                return None
+        else:
+            key, val = value.split('=')
+            if len(key) == 0 or len(val) == 0:
+                print "Error: Invalid configuration schema '%s'" % value
+                exit(1)
+
+            return {key: val}
+
+        # Lookup all entries in the value
+        c = {}
+        for e in entries:
+            key, val = e.split('=')
+            if len(key) == 0 or len(val) == 0:
+                print "Error: Invalid configuration schema '%s'" % value
+                exit(1)
+            c[key] = val
+
+        return c
+
     def get_arguments(self):
         update = None
+        monkey_conf = None
 
         # Reading command line arguments
         try:
-            optlist, args = getopt.getopt(sys.argv[1:], 'sgfrhvSw:p:')
+            optlist, args = getopt.getopt(sys.argv[1:], 'sgfrhvSw:p:M:')
         except getopt.GetoptError:
             self.print_help()
             sys.exit(2)
@@ -564,6 +672,8 @@ class Duda:
                     self.print_help()
                     exit(1)
                 self.port = arg
+            elif op == '-M':
+                monkey_conf = arg
             elif op == '-v':
                 sys.exit(0)
                 break
@@ -571,7 +681,7 @@ class Duda:
                 self.service = arg
                 self.config_requirements()
 
-
+        # SSL
         if self.SSL is True:
             self.monkey.SSL = True
 
@@ -582,8 +692,16 @@ class Duda:
 
             self.update_framework(update)
 
+        # Override Monkey configuration. It will create the configuration
+        # schema which is used later by the run_webservice() method.
+        if monkey_conf:
+            mconf_schema = self.conf_schema(monkey_conf)
+        else:
+            mconf_schema = None
+
+        # Run web service
         if self.service:
-            self.run_webservice()
+            self.run_webservice(mconf_schema)
 
     def _temp_path(self):
         pass
