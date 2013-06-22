@@ -166,7 +166,15 @@ class Duda:
         self.mk_home = self.mk_git.home()
         self.duda_home  = self.duda_git.home()
         self.dudac_wd   = '%s/.dudac' % (os.getenv('USERPROFILE') or os.getenv('HOME'))
-        self.stage_home = self.dudac_wd + '/stage/'
+
+        # In case the DUDAC_STAGE_PATH environment variable is set, use
+        # the alternative stage path. This is useful when using a fixed-path
+        # version of Monkey and Duda plugin, mostly for development purposes
+        if os.getenv('DUDAC_STAGE_PATH'):
+            self.stage_home = os.getenv('DUDAC_STAGE_PATH')
+        else:
+            self.stage_home = self.dudac_wd + '/stage/'
+
         self.monkey  = Monkey(self.stage_home + 'monkey/')
         self.get_arguments()
 
