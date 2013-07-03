@@ -415,6 +415,8 @@ class Duda:
         for line in lines:
             if line.startswith("    Port"):
                 raw += "    Port " + str(self.port) + "\n"
+            elif line.startswith("    User"):
+                raw += "    # User  Inactivated by DudaC\n"
             elif line.startswith("    TransportLayer") and self.rebuild_monkey is True:
                 if self.SSL is True:
                     raw += "    TransportLayer polarssl\n"
