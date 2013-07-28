@@ -365,6 +365,10 @@ class Duda:
             if os.path.exists(datadir):
                 raw += "    DataDir %s\n" % (datadir)
 
+            logdir = os.path.abspath(self.service) + '/logs/'
+            if os.path.exists(logdir):
+                raw += "    LogDir  %s\n" % (logdir)
+
             raw += "\n"
 
         f = open(vhost, "w")
