@@ -160,6 +160,7 @@ class Duda:
         self.port = 2001
         self.SSL = False
         self.SSL_default = False
+        self.output_stdout = False
         self.rebuild_monkey = True
         self.mk_git = MonkeyGIT()
         self.duda_git = DudaGIT()
@@ -521,7 +522,13 @@ class Duda:
                 schema += domain + services[d]['name'] + "]\n"
                 d += 1
 
-            execute("Running HTTP Server            %s" % schema, http, False)
+            # Do not trap the output of the server, just print everything
+            # to STDOUT
+            if self.output_stdout is True:
+                execute_stdout("Running HTTP Server            %s" % schema, http)
+            else:
+                execute("Running HTTP Server            %s" % schema, http, False)
+
         except (RuntimeError, TypeError, NameError):
             print "\nDone!"
             raise
@@ -606,7 +613,7 @@ class Duda:
         self.duda_git.remove(self.duda_home)
 
     def print_version(self):
-        print_bold("Duda Client Manager - v0.9")
+        print_bold("Duda Client Manager - v0.10")
         print_color("http://duda.io", ANSI_YELLOW, True)
         print_color("http://monkey-project.com\n", ANSI_YELLOW, True)
 
@@ -622,6 +629,7 @@ class Duda:
         print "  -r\t\t\tReset environment"
         print "  -M 'k1=v1,kn=vn'\tOverride some web server config key/value"
         print "  -h\t\t\tPrint this help"
+        print "  -u\t\t\tRedirect server output to STDOUT"
         print "  -v\t\t\tPrint version"
 
     # it creates a configuration schema to override the values of the main
@@ -656,7 +664,7 @@ class Duda:
 
         # Reading command line arguments
         try:
-            optlist, args = getopt.getopt(sys.argv[1:], 'sgfrhvSw:p:M:')
+            optlist, args = getopt.getopt(sys.argv[1:], 'sgfrhvSuw:p:M:')
         except getopt.GetoptError:
             self.print_help()
             sys.exit(2)
@@ -688,6 +696,9 @@ class Duda:
                 self.port = arg
             elif op == '-M':
                 monkey_conf = arg
+            elif op == '-u':
+                self.output_stdout = True
+                break
             elif op == '-v':
                 sys.exit(0)
                 break

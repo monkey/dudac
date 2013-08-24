@@ -14,6 +14,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
+import os
 import sys
 import commands
 
@@ -27,6 +28,13 @@ ANSI_GREEN   = "\033[32m"
 ANSI_WHITE   = "\033[37m"
 ANSI_RESET   = "\033[0m"
 
+# Execute a command and print the output to stdout
+def execute_stdout(header, command):
+    print "[+] %-30s" % (header),
+    sys.stdout.flush()
+    os.system(command)
+
+# Execute a command and trap the return value
 def execute(header, command, status=True):
     print "[+] %-30s" % (header),
     sys.stdout.flush()
