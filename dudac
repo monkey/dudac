@@ -167,12 +167,13 @@ class Duda:
         self.mk_home = self.mk_git.home()
         self.duda_home  = self.duda_git.home()
         self.dudac_wd   = '%s/.dudac' % (os.getenv('USERPROFILE') or os.getenv('HOME'))
+        self.dudac_stage_path = os.getenv('DUDAC_STAGE_PATH')
 
         # In case the DUDAC_STAGE_PATH environment variable is set, use
         # the alternative stage path. This is useful when using a fixed-path
         # version of Monkey and Duda plugin, mostly for development purposes
-        if os.getenv('DUDAC_STAGE_PATH'):
-            self.stage_home = os.getenv('DUDAC_STAGE_PATH')
+        if self.dudac_stage_path is not None:
+            self.stage_home = self.dudac_stage_path
         else:
             self.stage_home = self.dudac_wd + '/stage/'
 
@@ -263,9 +264,10 @@ class Duda:
             cpath = os.getcwd()
 
             # Make sure Monkey sources match the snapshot
-            self.mk_git.snapshot()
-            self.duda_git.snapshot()
-            self.merge_on_stage()
+            if not os.getenv('DUDAC_STAGE_PATH'):
+                self.mk_git.snapshot()
+                self.duda_git.snapshot()
+                self.merge_on_stage()
 
             # Cleanup and rebuild Monkey
             os.chdir(monkey_stage)
@@ -609,11 +611,12 @@ class Duda:
         f.close()
 
     def reset(self):
-        self.mk_git.remove(self.mk_home)
-        self.duda_git.remove(self.duda_home)
+        if self.dudac_stage_path is None:
+            self.mk_git.remove(self.mk_home)
+            self.duda_git.remove(self.duda_home)
 
     def print_version(self):
-        print_bold("Duda Client Manager - v0.10")
+        print_bold("Duda Client Manager - v0.11")
         print_color("http://duda.io", ANSI_YELLOW, True)
         print_color("http://monkey-project.com\n", ANSI_YELLOW, True)
 
@@ -715,7 +718,8 @@ class Duda:
                 print "Error: you cannot mix the flag -f with -g or -s"
                 exit(1)
 
-            self.update_framework(update)
+            if self.dudac_stage_path is None:
+                self.update_framework(update)
 
         # Override Monkey configuration. It will create the configuration
         # schema which is used later by the run_webservice() method.
