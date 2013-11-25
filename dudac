@@ -161,6 +161,7 @@ class Duda:
         self.SSL = False
         self.SSL_default = False
         self.output_stdout = False
+        self.jemalloc_prof = False
         self.rebuild_monkey = True
         self.mk_git = MonkeyGIT()
         self.duda_git = DudaGIT()
@@ -616,7 +617,7 @@ class Duda:
             self.duda_git.remove(self.duda_home)
 
     def print_version(self):
-        print_bold("Duda Client Manager - v0.11")
+        print_bold("Duda Client Manager - v0.12")
         print_color("http://duda.io", ANSI_YELLOW, True)
         print_color("http://monkey-project.com\n", ANSI_YELLOW, True)
 
@@ -630,6 +631,7 @@ class Duda:
         print "  -f\t\t\tDo not rebuild Monkey (fast-run)"
         print "  -S\t\t\tWeb Service will run with SSL mode enabled"
         print "  -r\t\t\tReset environment"
+        print "  -J\t\t\tEnable Jemalloc profiling and leak support (disabled)"
         print "  -M 'k1=v1,kn=vn'\tOverride some web server config key/value"
         print "  -h\t\t\tPrint this help"
         print "  -u\t\t\tRedirect server output to STDOUT"
@@ -667,7 +669,7 @@ class Duda:
 
         # Reading command line arguments
         try:
-            optlist, args = getopt.getopt(sys.argv[1:], 'sgfrhvSuw:p:M:')
+            optlist, args = getopt.getopt(sys.argv[1:], 'sgfrhvSuw:p:JM:')
         except getopt.GetoptError:
             self.print_help()
             sys.exit(2)
@@ -697,6 +699,9 @@ class Duda:
                     self.print_help()
                     exit(1)
                 self.port = arg
+            elif op == '-J':
+                self.jemalloc_prof = True
+                break
             elif op == '-M':
                 monkey_conf = arg
             elif op == '-u':
@@ -712,6 +717,13 @@ class Duda:
         # SSL
         if self.SSL is True:
             self.monkey.SSL = True
+
+        # Enable Jemalloc profiling
+        if self.jemalloc_prof is True:
+            os.environ['JEMALLOC_OPTS']  = '--enable-prof'
+            os.environ['JE_MALLOC_CONF'] = 'prof_leak:true,prof:true,prof_prefix:duda.jeprof'
+        # More environment vars: make will use 8 jobs
+        os.environ['MAKEFLAGS'] = '-j 8'
 
         if update is not None:
             if self.rebuild_monkey is False:
