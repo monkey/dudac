@@ -46,6 +46,7 @@ class DudaConfig(ConfigParser.ConfigParser):
             return None
 
 class Monkey:
+    opts = ''
     recent_configure = False
     recent_build = False
     recent_clean = False
@@ -61,11 +62,11 @@ class Monkey:
         cpath = os.getcwd()
         os.chdir(self.mk_path)
 
-        configure = "./configure --debug --disable-plugins='*' --enable-plugins='liana,duda'"
+        configure = "./configure --debug --disable-plugins='*' --enable-plugins='liana,duda' " + self.opts
 
-        # If we have SSL enable, we have to replace the transport layer, that means disable
-        # Liana and enable the new PolarSSL, later we need to generate certificates and configure
-        # everything to make it work properly
+        # If we have SSL enable, we have to replace the transport layer, that means
+        # disable Liana and enable the new PolarSSL, later we need to generate
+        # certificates and configure everything to make it work properly
         if self.SSL is True:
             configure = configure.replace('liana','polarssl')
 
@@ -161,6 +162,7 @@ class Duda:
         self.SSL = False
         self.SSL_default = False
         self.output_stdout = False
+        self.linux_trace = False
         self.jemalloc_prof = False
         self.rebuild_monkey = True
         self.mk_git = MonkeyGIT()
@@ -242,7 +244,6 @@ class Duda:
         os.chdir(self.mk_home)
 
         self.mk_git.snapshot()
-
         self.merge_on_stage()
         self.monkey.configure()
 
@@ -275,7 +276,6 @@ class Duda:
 
             if os.path.exists("./Makefile"):
                 self.monkey.make_clean()
-
                 self.monkey.configure()
                 self.monkey.make_build()
 
@@ -632,6 +632,7 @@ class Duda:
         print "  -S\t\t\tWeb Service will run with SSL mode enabled"
         print "  -r\t\t\tReset environment"
         print "  -J\t\t\tEnable Jemalloc profiling and leak support (disabled)"
+        print "  -T\t\t\tEnable Linux Trace Toolkit (disabled)"
         print "  -M 'k1=v1,kn=vn'\tOverride some web server config key/value"
         print "  -h\t\t\tPrint this help"
         print "  -u\t\t\tRedirect server output to STDOUT"
@@ -669,7 +670,7 @@ class Duda:
 
         # Reading command line arguments
         try:
-            optlist, args = getopt.getopt(sys.argv[1:], 'sgfrhvSuw:p:JM:')
+            optlist, args = getopt.getopt(sys.argv[1:], 'sgfrhvSuw:p:JTM:')
         except getopt.GetoptError:
             self.print_help()
             sys.exit(2)
@@ -704,6 +705,9 @@ class Duda:
                 break
             elif op == '-M':
                 monkey_conf = arg
+            elif op == '-T':
+                self.linux_trace = True
+                break
             elif op == '-u':
                 self.output_stdout = True
                 break
@@ -724,6 +728,9 @@ class Duda:
             os.environ['JE_MALLOC_CONF'] = 'prof_leak:true,prof:true,prof_prefix:duda.jeprof'
         # More environment vars: make will use 8 jobs
         os.environ['MAKEFLAGS'] = '-j 8'
+
+        if self.linux_trace is True:
+            self.monkey.opts += "--linux-trace "
 
         if update is not None:
             if self.rebuild_monkey is False:
