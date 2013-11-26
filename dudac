@@ -164,7 +164,8 @@ class Duda:
         self.output_stdout = False
         self.linux_malloc = False
         self.linux_trace = False
-        self.jemalloc_prof = False
+        self.jemalloc_stats = False
+        self.jemalloc_prof  = False
         self.rebuild_monkey = True
         self.mk_git = MonkeyGIT()
         self.duda_git = DudaGIT()
@@ -618,24 +619,34 @@ class Duda:
             self.duda_git.remove(self.duda_home)
 
     def print_version(self):
-        print_bold("Duda Client Manager - v0.12")
+        print_bold("Duda Client Manager - v0.13")
         print_color("http://duda.io", ANSI_YELLOW, True)
         print_color("http://monkey-project.com\n", ANSI_YELLOW, True)
 
     def print_help(self):
         print "Usage: dudac [-g|-s] [-S] [-h] [-v] [-A] [-J] [-T] -w WEB_SERVICE_PATH\n"
-        print "Options:"
-        print "  -p TCP_PORT\t\tSet TCP port (default 2001)"
-        print "  -w WEB_SERVICE\tSpecify web service source path"
+        print ANSI_BOLD + ANSI_WHITE + "Stack Build Options" + ANSI_RESET
         print "  -s\t\t\tClone/Update Monkey sources using SSH"
         print "  -g\t\t\tClone/Update Monkey sources using GIT"
         print "  -f\t\t\tDo not rebuild Monkey (fast-run)"
-        print "  -S\t\t\tWeb Service will run with SSL mode enabled"
         print "  -r\t\t\tReset environment"
+
+        print
+        print ANSI_BOLD + ANSI_WHITE + "Profiling and Trace" + ANSI_RESET
         print "  -A\t\t\tUse system memory allocator instead of Jemalloc (disabled)"
+        print "  -X\t\t\tEnable Jemalloc statistics (disabled)"
         print "  -J\t\t\tEnable Jemalloc profiling and leaks detection (disabled)"
         print "  -T\t\t\tEnable Linux Trace Toolkit (disabled)"
+
+        print
+        print ANSI_BOLD + ANSI_WHITE + "HTTP Server Options" + ANSI_RESET
+        print "  -p TCP_PORT\t\tSet TCP port (default 2001)"
+        print "  -w WEB_SERVICE\tSpecify web service source path"
+        print "  -S\t\t\tWeb Service will run with SSL mode enabled"
         print "  -M 'k1=v1,kn=vn'\tOverride some web server config key/value"
+
+        print
+        print ANSI_BOLD + ANSI_WHITE + "Others" + ANSI_RESET
         print "  -h\t\t\tPrint this help"
         print "  -u\t\t\tRedirect server output to STDOUT"
         print "  -v\t\t\tPrint version"
@@ -672,7 +683,7 @@ class Duda:
 
         # Reading command line arguments
         try:
-            optlist, args = getopt.getopt(sys.argv[1:], 'sgfrhvSuw:p:AJTM:')
+            optlist, args = getopt.getopt(sys.argv[1:], 'sgfrhvSuw:p:AXJTM:')
         except getopt.GetoptError:
             self.print_help()
             sys.exit(2)
@@ -703,6 +714,8 @@ class Duda:
                 self.port = arg
             elif op == '-A':
                 self.linux_malloc = True
+            elif op == '-X':
+                self.jemalloc_stats = True
             elif op == '-J':
                 self.jemalloc_prof = True
             elif op == '-M':
@@ -723,18 +736,27 @@ class Duda:
             self.monkey.SSL = True
 
         # Enable Jemalloc profiling
+        os.environ['JEMALLOC_OPTS'] = ''
         if self.jemalloc_prof is True:
             os.environ['JEMALLOC_OPTS']  = '--enable-prof'
             os.environ['JE_MALLOC_CONF'] = 'prof_leak:true,prof:true,prof_prefix:duda.jeprof'
+
         # More environment vars: make will use 8 jobs
         os.environ['MAKEFLAGS'] = '-j 8'
 
+        # Linux Trace Toolkit
         if self.linux_trace is True:
             self.monkey.opts += "--linux-trace "
 
+        # Use system malloc instead Jemalloc
         if self.linux_malloc is True:
             self.monkey.opts += "--malloc-system "
 
+        # Jemalloc Stats
+        if self.linux_malloc is False and self.jemalloc_stats is True:
+            os.environ['JEMALLOC_OPTS'] += ' --enable-stats'
+
+        # Rebuild the stack ?
         if update is not None:
             if self.rebuild_monkey is False:
                 print "Error: you cannot mix the flag -f with -g or -s"
