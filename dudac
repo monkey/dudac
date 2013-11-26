@@ -694,7 +694,6 @@ class Duda:
             elif op == '-h':
                 self.print_help()
                 sys.exit(0)
-                break
             elif op == '-p':
                 if not str(arg).isdigit():
                     self.print_help()
