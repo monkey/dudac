@@ -736,10 +736,12 @@ class Duda:
             self.monkey.SSL = True
 
         # Enable Jemalloc profiling
-        os.environ['JEMALLOC_OPTS'] = ''
+        if 'JEMALLOC_OPTS' not in os.environ:
+            os.environ['JEMALLOC_OPTS'] = ''
+
         if self.jemalloc_prof is True:
-            os.environ['JEMALLOC_OPTS']  = '--enable-prof'
-            os.environ['JE_MALLOC_CONF'] = 'prof_leak:true,prof:true,prof_prefix:duda.jeprof'
+            os.environ['JEMALLOC_OPTS']  += '--enable-prof'
+            os.environ['JE_MALLOC_CONF']  = 'prof_leak:true,prof:true,prof_prefix:duda.jeprof'
 
         # More environment vars: make will use 8 jobs
         os.environ['MAKEFLAGS'] = '-j 8'
