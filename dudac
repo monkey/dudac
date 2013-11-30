@@ -633,7 +633,7 @@ class Duda:
 
         print
         print ANSI_BOLD + ANSI_WHITE + "Profiling and Trace" + ANSI_RESET
-        print "  -A\t\t\tUse system memory allocator instead of Jemalloc (disabled)"
+        print "  -A\t\t\tUse libc memory allocator instead of Jemalloc (disabled)"
         print "  -X\t\t\tEnable Jemalloc statistics (disabled)"
         print "  -J\t\t\tEnable Jemalloc profiling and leaks detection (disabled)"
         print "  -T\t\t\tEnable Linux Trace Toolkit (disabled)"
@@ -752,7 +752,7 @@ class Duda:
 
         # Use system malloc instead Jemalloc
         if self.linux_malloc is True:
-            self.monkey.opts += "--malloc-system "
+            self.monkey.opts += "--malloc-libc "
 
         # Jemalloc Stats
         if self.linux_malloc is False and self.jemalloc_stats is True:
