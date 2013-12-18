@@ -532,7 +532,7 @@ class Duda:
             if self.output_stdout is True:
                 execute_stdout("Running HTTP Server            %s" % schema, http)
             else:
-                execute("Running HTTP Server            %s" % schema, http, False)
+                execute("Running HTTP Server            %s" % schema, http, False, True)
 
         except (RuntimeError, TypeError, NameError):
             print "\nDone!"
@@ -619,7 +619,7 @@ class Duda:
             self.duda_git.remove(self.duda_home)
 
     def print_version(self):
-        print_bold("Duda Client Manager - v0.13")
+        print_bold("Duda Client Manager - v0.14")
         print_color("http://duda.io", ANSI_YELLOW, True)
         print_color("http://monkey-project.com\n", ANSI_YELLOW, True)
 
