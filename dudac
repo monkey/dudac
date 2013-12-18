@@ -624,14 +624,15 @@ class Duda:
         print_color("http://monkey-project.com\n", ANSI_YELLOW, True)
 
     def print_help(self):
-        print "Usage: dudac [-g|-s] [-S] [-h] [-v] [-A] [-J] [-T] -w WEB_SERVICE_PATH\n"
+        print "Usage: dudac [-g|-s] [-f] [-r] [-t PATH] [-S] [-h] [-v] [-A] [-J] [-T] -w WEB_SERVICE\n"
         print ANSI_BOLD + ANSI_WHITE + "Stack Build Options" + ANSI_RESET
         print "  -s\t\t\tClone/Update Monkey sources using SSH"
         print "  -g\t\t\tClone/Update Monkey sources using GIT"
         print "  -f\t\t\tDo not rebuild Monkey (fast-run)"
         print "  -r\t\t\tReset environment"
-
+        print "  -t PATH\t\tSpecify stage path where stack components are located"
         print
+
         print ANSI_BOLD + ANSI_WHITE + "Profiling and Trace" + ANSI_RESET
         print "  -A\t\t\tUse libc memory allocator instead of Jemalloc (disabled)"
         print "  -X\t\t\tEnable Jemalloc statistics (disabled)"
@@ -683,7 +684,7 @@ class Duda:
 
         # Reading command line arguments
         try:
-            optlist, args = getopt.getopt(sys.argv[1:], 'sgfrhvSuw:p:AXJTM:')
+            optlist, args = getopt.getopt(sys.argv[1:], 'sgfrt:hvSuw:p:AXJTM:')
         except getopt.GetoptError:
             self.print_help()
             sys.exit(2)
@@ -702,6 +703,9 @@ class Duda:
             elif op == '-r':
                 self.reset()
                 exit(0)
+            elif op == '-t':
+                self.dudac_stage_path = arg
+                os.setenv('DUDAC_STAGE_PATH', self.dudac_stage_path)
             elif op == '-S':
                 self.SSL = True
             elif op == '-h':
