@@ -84,7 +84,7 @@ def output_pid(out):
     return pid
 
 def gdb_analyze(command, out):
-    
+
     pid = output_pid(out)
 
     # Check if a core dump file exists
@@ -152,7 +152,12 @@ def execute(header, command, status=True, crash_debug=False):
 
         # Store outout to log file
         pid = output_pid(ret[1])
-        target = 'logs/crash_report.' + pid
+        if pid is not None:
+            target = 'logs/crash_report.' + pid
+        else:
+            print ret[1]
+            exit(1)
+
         report = time.strftime('%Y/%m/%d %H:%M:%S: ')
         report += 'Duda I/O Web Service Crash Report\n'
         report += '======================================================\n\n'
