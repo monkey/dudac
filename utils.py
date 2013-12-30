@@ -86,6 +86,8 @@ def output_pid(out):
 def gdb_analyze(command, out):
 
     pid = output_pid(out)
+    if pid is None:
+        return None
 
     # Check if a core dump file exists
     if out.find('[stack trace]') > 0 or out.find('backtrace'):
