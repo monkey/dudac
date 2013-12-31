@@ -278,8 +278,9 @@ class Duda:
 
             if os.path.exists("./Makefile"):
                 self.monkey.make_clean()
-                self.monkey.configure()
-                self.monkey.make_build()
+
+            self.monkey.configure()
+            self.monkey.make_build()
 
             # Restore path
             os.chdir(cpath)
