@@ -21,41 +21,41 @@ import commands
 
 from utils import *
 
-PROTOCOL_GIT = 0
-PROTOCOL_SSH = 1
+PROTOCOL_HTTPS = 0
+PROTOCOL_GIT   = 1
 
 class GitProject(object):
     # Project and repository details
     project_name = None
     version  = 'master'
-    git_repo = None      # 'git://git.monkey-project.com/monkey'
-    ssh_repo = None      # 'ssh://git.monkey-project.com/srv/git/monkey'
+    https_repo = None      # 'https://github.com/monkey/monkey.git'
+    git_repo   = None      # 'git@github.com:monkey/monkey.git'
 
     # Internal usage variables
     recent_update   = False
     recent_master   = False
     recent_snapshot = False
 
-    def __init__(self, project_name, git_repo, ssh_repo):
+    def __init__(self, project_name, https_repo, git_repo):
         self.project_name = project_name
-        self.git_repo = git_repo
-        self.ssh_repo = ssh_repo
+        self.https_repo = https_repo
+        self.git_repo   = git_repo
 
     def set_protocol(self, protocol):
-        if protocol == PROTOCOL_GIT:
+        if protocol == PROTOCOL_HTTPS:
+            self.protocol = self.https_repo
+        elif protocol == PROTOCOL_GIT:
             self.protocol = self.git_repo
-        elif protocol == PROTOCOL_SSH:
-            self.protocol = self.ssh_repo
 
-    def setup(self, version, git_repo, ssh_repo):
+    def setup(self, version, https_repo, git_repo):
         if version is not None:
             self.version = version
 
+        if https_repo is not None:
+            self.https_repo = https_repo
+
         if git_repo is not None:
             self.git_repo = git_repo
-
-        if ssh_repo is not None:
-            self.ssh_repo = ssh_repo
 
     def clone(self, to):
         cmd = "git clone " + self.protocol + " " + to

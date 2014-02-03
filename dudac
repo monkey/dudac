@@ -26,8 +26,8 @@ import ConfigParser
 from git import GitProject
 from utils import *
 
-PROTOCOL_GIT = 0
-PROTOCOL_SSH = 1
+PROTOCOL_HTTPS = 0
+PROTOCOL_GIT   = 1
 
 class DudaConfig(ConfigParser.ConfigParser):
     def __init__(self):
@@ -110,9 +110,9 @@ class Monkey:
 
 class MonkeyGIT (GitProject):
     def __init__(self):
-        git_repo = 'https://github.com/monkey/monkey.git'
-        ssh_repo = 'git@github.com:monkey/monkey.git'
-        GitProject.__init__(self, 'Monkey', git_repo, ssh_repo)
+        https_repo = 'https://github.com/monkey/monkey.git'
+        git_repo   = 'git@github.com:monkey/monkey.git'
+        GitProject.__init__(self, 'Monkey', https_repo, git_repo)
 
     def home(self):
         # Check our user temporal directory
@@ -123,9 +123,9 @@ class MonkeyGIT (GitProject):
 
 class DudaGIT(GitProject):
     def __init__(self):
-        git_repo = 'https://github.com/monkey/duda.git'
-        ssh_repo = 'git@github.com:monkey/duda.git'
-        GitProject.__init__(self, 'Duda', git_repo, ssh_repo)
+        https_repo = 'https://github.com/monkey/duda.git'
+        git_repo   = 'git@github.com:monkey/duda.git'
+        GitProject.__init__(self, 'Duda', https_repo, git_repo)
 
     def home(self):
         # Check our user temporal directory
@@ -200,7 +200,7 @@ class Duda:
     def config_requirements(self):
         ws = os.path.abspath(self.service)
 
-        config_file = os.path.abspath("%s/config.dudac" % (ws))
+        config_file = os.path.abspath("%s/dudac.conf" % (ws))
         if not os.path.isdir(ws):
             print "Error: Invalid web service directory"
             exit(1)
@@ -213,26 +213,26 @@ class Duda:
         config = DudaConfig()
         config.open(config_file)
 
-        mk_version    = None
-        mk_git_repo   = None
-        mk_ssh_repo   = None
-        duda_version  = None
-        duda_git_repo = None
-        duda_ssh_repo = None
+        mk_version      = None
+        mk_https_repo   = None
+        mk_git_repo     = None
+        duda_version    = None
+        duda_https_repo = None
+        duda_git_repo   = None
 
         for h in config.get_handlers():
             if h == 'MONKEY':
                 # Get key/values
-                mk_version  = config.get_key(h, 'version')
-                mk_git_repo = config.get_key(h, 'git_repo')
-                mk_ssh_repo = config.get_key(h, 'ssh_repo')
+                mk_version    = config.get_key(h, 'version')
+                mk_https_repo = config.get_key(h, 'https_repo')
+                mk_git_repo   = config.get_key(h, 'git_repo')
             elif h == 'DUDA':
-                duda_version  = config.get_key(h, 'version')
-                duda_git_repo = config.get_key(h, 'git_repo')
-                duda_ssh_repo = config.get_key(h, 'ssh_repo')
+                duda_version    = config.get_key(h, 'version')
+                duda_https_repo = config.get_key(h, 'https_repo')
+                duda_git_repo   = config.get_key(h, 'git_repo')
 
-        self.mk_git.setup(mk_version, mk_git_repo, mk_ssh_repo)
-        self.duda_git.setup(duda_version, duda_git_repo, duda_ssh_repo)
+        self.mk_git.setup(mk_version, mk_https_repo, mk_git_repo)
+        self.duda_git.setup(duda_version, duda_https_repo, duda_git_repo)
 
     def update_framework(self, protocol):
         self.mk_git.set_protocol(protocol)
@@ -652,8 +652,8 @@ class Duda:
     def print_help(self):
         print "Usage: dudac [-g|-s] [-S] [-h] [-v] [-A] [-J] [-T] -w WEB_SERVICE_PATH\n"
         print ANSI_BOLD + ANSI_WHITE + "Stack Build Options" + ANSI_RESET
-        print "  -s\t\t\tClone/Update Monkey sources using SSH"
-        print "  -g\t\t\tClone/Update Monkey sources using GIT"
+        print "  -s\t\t\tGet stack sources using HTTPS"
+        print "  -g\t\t\tGet stack sources using GIT protocol (SSH)"
         print "  -f\t\t\tDo not rebuild Monkey (fast-run)"
         print "  -r\t\t\tReset environment"
 
@@ -720,7 +720,7 @@ class Duda:
         # Check options
         for op, arg in optlist:
             if op == '-s':
-                update = PROTOCOL_SSH
+                update = PROTOCOL_HTTPS
             elif op == '-g':
                 update = PROTOCOL_GIT
             elif op == '-f':
@@ -792,6 +792,8 @@ class Duda:
 
             if self.dudac_stage_path is None:
                 self.update_framework(update)
+            else:
+                print_msg("DUDAC_STAGE_PATH is set")
 
         # Override Monkey configuration. It will create the configuration
         # schema which is used later by the run_webservice() method.
