@@ -29,6 +29,12 @@ ANSI_GREEN   = "\033[32m"
 ANSI_WHITE   = "\033[37m"
 ANSI_RESET   = "\033[0m"
 
+MSG_TAG_INIT = ANSI_RESET + ANSI_BOLD + '['
+MSG_TAG_END  = ANSI_RESET + ANSI_BOLD + ']' + ANSI_RESET
+MSG_OK       = MSG_TAG_INIT + ANSI_GREEN + 'OK' + MSG_TAG_END
+MSG_FAIL     = MSG_TAG_INIT + ANSI_RED + 'FAILED' + MSG_TAG_END
+MSG_NEW      = '[' + ANSI_YELLOW + '+' + ANSI_RESET + ']'
+
 # Print a failure message
 def fail_msg(msg):
     print ANSI_RED + "[-] " + ANSI_RESET + msg
@@ -116,22 +122,30 @@ def gdb_analyze(command, out):
             return None
 
 # Execute a command and print the output to stdout
-def execute_stdout(header, command):
-    print "[+] %-30s" % (header),
+def execute_stdout(header, command, head=True):
+    if head is True:
+        print "%s %-70s" % (MSG_NEW, header),
+    else:
+        print header
+
     sys.stdout.flush()
     os.system(command)
 
 # Execute a command and trap the return value
-def execute(header, command, status=True, crash_debug=False):
-    print "[+] %-30s" % (header),
+def execute(header, command, status=True, crash_debug=False, head=True):
+    if head is True:
+        print "%s %-70s" % (MSG_NEW, header),
+    else:
+        print header
+
     sys.stdout.flush()
 
     ret = commands.getstatusoutput(command)
     if ret[0] == 0:
         if status is True:
-            print "[OK]"
+            print MSG_OK
         if ret[1].find('warning') > 0:
-            print ANSI_BOLD + ANSI_RED + "--- Compilation Warnings ---" + ANSI_RESET
+            print ANSI_BOLD + ANSI_RED + "--- Compiler Warnings ---" + ANSI_RESET
 
             lines = ret[1].split('\n')
             for l in lines:
@@ -142,7 +156,7 @@ def execute(header, command, status=True, crash_debug=False):
             print ANSI_RESET
     else:
         if status is True:
-            print "[FAILED]\n"
+            print MSG_FAIL
 
         print
         fail_msg("Command exit: %s" % command)

@@ -113,10 +113,19 @@ class GitProject(object):
         self.recent_master = True
 
     def archive_to(self, path):
-        cmd = 'git checkout-index -a -f --prefix=%s/' % path
+        cmd =  'git checkout-index -a -f --prefix=%s/' % (path)
+
+        if self.version:
+            v = self.version
+            if v.startswith('commit') or v.startswith('tag') or v.startswith('branch'):
+                arr = v.split('@')
+                cmd = 'git checkout %s' % (arr[1])
+
+
+        #cmd = 'git archive --prefix=%s/ %s' % (path, self.version)
         cpath = os.getcwd()
         os.chdir(self.home())
-        execute('GIT %s: archive' % (self.project_name), cmd)
+        execute('%-12s: archive' % ('GIT %s' % self.project_name), cmd)
 
     # A snapshot takes the value of the 'version' key and set the GIT repository
     # to the specified point, a few examples:
@@ -130,30 +139,17 @@ class GitProject(object):
         if self.recent_snapshot is True:
             return
 
-        v = self.version
-
-        try:
-            if v == 'master':
-                cmd = 'git checkout master'
-            elif v.startswith('commit') or v.startswith('tag') or v.startswith('branch'):
-                arr = v.split('@')
-                cmd = 'git checkout %s' % (arr[1])
-            else:
-                print "Error: Invalid 'version' value"
-                exit(1)
-        except:
-            print "Error: invalid 'version' value"
-            exit(1)
-
-
-        # Make sure to go back to master
-        self.master()
+        cmd = 'git checkout %s' % (self.version)
 
         cpath = os.getcwd()
         os.chdir(self.home())
         cmd = 'git stash && git checkout master && %s' % (cmd)
-        execute("GIT %s: switch to new head" % (self.project_name), cmd)
+        ghead = 'GIT %s' % self.project_name
+        execute("%-12s: switch HEAD to '%s'" % (ghead, self.version), cmd)
         os.chdir(cpath)
+
+        # Make sure to go back to master
+        #self.master()
 
         self.recent_snapshot = True
 

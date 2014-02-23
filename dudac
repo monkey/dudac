@@ -72,7 +72,7 @@ class Monkey:
             configure = configure.replace('liana','polarssl')
 
         # Run the configure script
-        execute("Monkey: prepare build", configure)
+        execute("Monkey      : prepare build", configure)
 
         # Revert to original path
         os.chdir(cpath)
@@ -83,7 +83,7 @@ class Monkey:
             return
 
         cmd = "make -C %s" % (self.mk_path)
-        execute("Monkey: building", cmd)
+        execute("Monkey      : building", cmd)
 
         self.recent_build = True
 
@@ -95,7 +95,7 @@ class Monkey:
             return
 
         cmd = "make -C %s clean" % (self.mk_path)
-        execute("Monkey: cleaning", cmd)
+        execute("Monkey      : cleaning", cmd)
 
         self.recent_clean = True
 
@@ -348,8 +348,8 @@ class Duda:
             f_mk.close()
 
         # Cleanup web service and rebuild
-        execute("WebService: clean", "make -C " + ws + " clean")
-        execute("WebService: build", "make -C " + ws)
+        execute("WebService  : clean", "make -C " + ws + " clean")
+        execute("WebService  : build", "make -C " + ws)
 
         # Get services
         services = []
@@ -372,7 +372,7 @@ class Duda:
         f.close()
 
         # Setting up web services
-        print "[+] %-30s" % "Monkey: configure HTTP Server",
+        print "%s %-70s" % (MSG_NEW, "Monkey      : configure HTTP Server"),
         raw = ""
         for line in lines:
             if line.startswith('[WEB_'):
@@ -470,7 +470,7 @@ class Duda:
         f.write(raw)
         f.close()
 
-        print "[OK]"
+        print MSG_OK
 
         # Schema
         # ======
@@ -545,20 +545,24 @@ class Duda:
                 prot = "http"
 
             d = 0
-            domain = "[" + prot + "://localhost:%s/" % str(self.port)
+            domain = prot + "://localhost:%s/" % str(self.port)
             schema = ""
             for s in services:
                 if d > 0:
                     schema += "                                   "
-                schema += domain + services[d]['name'] + "]\n"
+                schema += domain + services[d]['name'] + "\n"
                 d += 1
 
             # Do not trap the output of the server, just print everything
             # to STDOUT
+            sc = ANSI_RESET + ANSI_CYAN + schema + ANSI_RESET
             if self.output_stdout is True:
-                execute_stdout("Running HTTP Server            %s" % schema, http)
+                execute_stdout("%s Service Up  : %s" \
+                                   % (MSG_NEW, sc), http, False)
             else:
-                execute("Running HTTP Server            %s" % schema, http, False, True)
+                execute("%s Service Up  : %s" \
+                            % (MSG_NEW, sc), \
+                            http, False, True, False)
 
         except (RuntimeError, TypeError, NameError):
             print "\nDone!"
@@ -645,7 +649,7 @@ class Duda:
             self.duda_git.remove(self.duda_home)
 
     def print_version(self):
-        print_bold("Duda Client Manager - v0.15")
+        print_bold("Duda Client Manager - v0.16")
         print_color("http://duda.io", ANSI_YELLOW, True)
         print_color("http://monkey-project.com\n", ANSI_YELLOW, True)
 
