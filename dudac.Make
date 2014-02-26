@@ -1,6 +1,6 @@
 _PATH     = $(patsubst /%, %, $(CURDIR))
-_CC       = @echo "  [\033[33mCC\033[0m]   $@"; $(CC)
-_DD       = @echo "  [\033[32mDD\033[0m]   $@"; $(CC)
+_CC       = @echo -e "  [\033[33mCC\033[0m]   $@"; $(CC)
+_DD       = @echo -e "  [\033[32mDD\033[0m]   $@"; $(CC)
 _CC_QUIET = @echo -n; $(CC)
 
 all: $(NAME).duda
