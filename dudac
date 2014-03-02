@@ -550,7 +550,7 @@ class Duda:
             for s in services:
                 if d > 0:
                     schema += "                                   "
-                schema += domain + services[d]['name'] + "\n"
+                schema += domain + services[d]['name'] + '/' + "\n"
                 d += 1
 
             # Do not trap the output of the server, just print everything
