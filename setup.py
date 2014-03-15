@@ -8,13 +8,13 @@ def read(fname):
 
 setup(
     name="dudac",
-    version="0.17.dev",
+    version="0.18.dev",
     author="Eduardo Silva",
     author_email="edsiper@gmail.com",
     description=("DudaC is a command line interface for the web services"
                  "framework 'Duda'"),
     license="GPLv2+",
-    keywords="HTTP monkey duda",
+    keywords="HTTP monkey duda server framework",
     url="http://duda.io",
     packages=find_packages(),
     long_description=read('README'),

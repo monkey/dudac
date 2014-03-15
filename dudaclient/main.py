@@ -651,7 +651,7 @@ class Duda:
             self.duda_git.remove(self.duda_home)
 
     def print_version(self):
-        print_bold("Duda Client Manager - v0.17")
+        print_bold("Duda Client Manager - v0.18")
         print_color("http://duda.io", ANSI_YELLOW, True)
         print_color("http://monkey-project.com\n", ANSI_YELLOW, True)
 
