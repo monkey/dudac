@@ -141,7 +141,7 @@ def execute(header, command, status=True, crash_debug=False, head=True):
     sys.stdout.flush()
 
     ret = commands.getstatusoutput(command)
-    if ret[0] == 0:
+    if os.WEXITSTATUS(ret[0]) == 0:
         if status is True:
             print MSG_OK
         if ret[1].find('warning') > 0:
@@ -158,8 +158,59 @@ def execute(header, command, status=True, crash_debug=False, head=True):
         if status is True:
             print MSG_FAIL
 
+        # The tricky part: what's the real process return status ?, according
+        # to Python documentation the value or ret[0] represents the following:
+        #
+        # "The exit status for the command can be interpreted according to the 
+        #  rules for the C function wait()."
+        #
+        # what ?, back to C manpages:
+        #
+        #  This integer can be inspected with the following macros (which take 
+        #  the integer itself as  an  argument,  not a pointer to it, as is 
+        #  done in wait() and waitpid()!):
+        #
+        #  WIFEXITED(status)...
+        #  WEXITSTATUS(status)...
+        #  WIFSIGNALED(status)...
+        #  WTERMSIG(status)...
+        #  WCOREDUMP(status)...
+        #  WIFSTOPPED(status)...
+        #  WSTOPSIG(status)...
+        #  WIFCONTINUED(status)...
+        #
+        # ok, so where are those macros on Python ??, Google -> Python WIFEXITED:
+        #
+        #   => os.WIFEXITED
+        #
+        # So everything i wanted to know was in the 'os' package, so why you tell
+        # me to go to C man page ?..lovely Python...
+        #
+
         print
-        fail_msg("Command exit: %s" % command)
+        fail_msg("Command exit (status=%i): %s" % (os.WEXITSTATUS(ret[0]), command))
+
+
+        status = ret[0]
+
+        """
+        print "WIFEXITED=", os.WIFEXITED(status)
+        print "WEXITSTATUS=", os.WEXITSTATUS(status)
+        print "WIFSIGNALED=", os.WIFSIGNALED(status)
+        print "WTERMSIG=", os.WTERMSIG(status)
+        print "WCOREDUMP=", os.WCOREDUMP(status)
+        print "WIFSTOPPED=", os.WIFSTOPPED(status)
+        print "WSTOPSIG=", os.WSTOPSIG(status)
+        print "WIFCONTINUED=", os.WIFCONTINUED(status)
+        """
+
+        if os.WIFSIGNALED(ret[0]) is False:
+            print ANSI_YELLOW + '-------------------------------' + ANSI_RESET
+            print ret[1]
+            print ANSI_YELLOW + '-------------------------------' + ANSI_RESET
+
+        if os.WEXITSTATUS(status) < 134: # 128 base + 11 SIGSEV
+            exit(1)
 
         crash_ret = None
         if crash_debug is True:
