@@ -26,9 +26,12 @@ import ConfigParser
 from git import GitProject
 from utils import *
 
+# Version
+DUDAC_VERSION  = "0.20"
+
+# Internal / Protocol
 PROTOCOL_HTTPS = 0
 PROTOCOL_GIT   = 1
-
 
 class DudaConfig(ConfigParser.ConfigParser):
     def __init__(self):
@@ -169,7 +172,7 @@ class Duda:
         self.linux_trace = False
         self.jemalloc_stats = False
         self.jemalloc_prof  = False
-        self.rebuild_monkey = True
+        self.rebuild_monkey = False
         self.mk_git = MonkeyGIT()
         self.duda_git = DudaGIT()
         self.mk_home = self.mk_git.home()
@@ -275,16 +278,43 @@ class Duda:
         os.chdir(cpath)
 
     def merge_on_stage(self):
+        # Create archives from repos
         self.mk_git.archive_to(self.stage_home + '/monkey')
         self.duda_git.archive_to(self.stage_home + '/monkey/plugins/duda')
+
+        # Tag the content with branch used
+        f = open(self.stage_home + '/monkey/api_level.dudac', 'w')
+        f.write(self.mk_git.version + '\n')
+        f.close()
+
 
     def run_webservice(self, schema=None):
         ws = os.path.abspath(self.service)
         monkey_stage = self.monkey.mk_path
 
+        # Check if the web service was staged and built previously, we
+        # this check to make sure the service is updated as the user needs/want
+        stage_level = self.stage_home + '/monkey/api_level.dudac'
+        if os.path.isfile(stage_level):
+            f = open(stage_level, 'r')
+            level = f.read().replace('\n', '')
+            f.close()
+
+            if level != self.mk_git.version:
+                self.rebuild_monkey = True
+        else:
+            self.rebuild_monkey = True
+
         if self.rebuild_monkey is True:
             # Backup our original path
             cpath = os.getcwd()
+
+            # On rebuild, check that stack sources are in place
+            if os.path.exists(self.mk_home) is False or \
+               os.path.exists(self.duda_home) is False:
+                fail_msg("Error: the stack components are missing, try: \n\n" \
+                         "    $ dudac -s\n")
+                sys.exit(1)
 
             # Make sure Monkey sources match the snapshot
             if not os.getenv('DUDAC_STAGE_PATH'):
@@ -661,7 +691,7 @@ class Duda:
             self.duda_git.remove(self.duda_home)
 
     def print_version(self):
-        print_bold("Duda Client Manager - v0.18")
+        print_bold("Duda Client Manager - v%s" % DUDAC_VERSION)
         print_color("http://duda.io", ANSI_YELLOW, True)
         print_color("http://monkey-project.com\n", ANSI_YELLOW, True)
 
@@ -671,7 +701,7 @@ class Duda:
         print "  -V\t\t\tAPI level (default: %i)" % DEFAULT_API_LEVEL
         print "  -s\t\t\tGet stack sources using HTTPS"
         print "  -g\t\t\tGet stack sources using GIT protocol (SSH)"
-        print "  -f\t\t\tDo not rebuild Monkey (fast-run)"
+        print "  -F\t\t\tForce mode, rebuild the Stage area"
         print "  -r\t\t\tReset environment"
 
         print
@@ -726,7 +756,7 @@ class Duda:
 
         # Reading command line arguments
         try:
-            optlist, args = getopt.getopt(sys.argv[1:], 'V:sgfrhvSuw:p:AXJTM:')
+            optlist, args = getopt.getopt(sys.argv[1:], 'V:sgFrhvSuw:p:AXJTM:')
         except getopt.GetoptError:
             self.print_help()
             sys.exit(2)
@@ -740,8 +770,8 @@ class Duda:
                 update = PROTOCOL_HTTPS
             elif op == '-g':
                 update = PROTOCOL_GIT
-            elif op == '-f':
-                self.rebuild_monkey = False
+            elif op == '-F':
+                self.rebuild_monkey = True
             elif op == '-r':
                 self.reset()
                 exit(0)
@@ -807,7 +837,7 @@ class Duda:
 
         # Rebuild the stack ?
         if update is not None:
-            if self.rebuild_monkey is False:
+            if self.rebuild_monkey is True:
                 print "Error: you cannot mix the flag -f with -g or -s"
                 exit(1)
 

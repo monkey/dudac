@@ -121,8 +121,6 @@ class GitProject(object):
                 arr = v.split('@')
                 cmd = 'git checkout %s' % (arr[1])
 
-
-        #cmd = 'git archive --prefix=%s/ %s' % (path, self.version)
         cpath = os.getcwd()
         os.chdir(self.home())
         execute('%-12s: archive' % ('GIT %s' % self.project_name), cmd)
