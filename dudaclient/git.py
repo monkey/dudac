@@ -127,6 +127,14 @@ class GitProject(object):
         os.chdir(self.home())
         execute('%-12s: archive' % ('GIT %s' % self.project_name), cmd)
 
+    def check_reference(self, ref):
+        cmd = 'git show-ref %s' % ref
+        ret = commands.getstatusoutput(cmd)
+        if os.WEXITSTATUS(ret[0]) == 0:
+            return True
+
+        return False
+
     # A snapshot takes the value of the 'version' key and set the GIT repository
     # to the specified point, a few examples:
     #
@@ -140,16 +148,18 @@ class GitProject(object):
             return
 
         cmd = 'git checkout %s' % (self.version)
-
         cpath = os.getcwd()
         os.chdir(self.home())
+
+        # Validate GIT reference
+        ref = self.check_reference(self.version)
+        if ref is False:
+            fail_msg("Error: invalid API level, aborting.")
+            sys.exit(1)
+
         cmd = 'git stash && git checkout master && %s' % (cmd)
         ghead = 'GIT %s' % self.project_name
         execute("%-12s: switch HEAD to '%s'" % (ghead, self.version), cmd)
         os.chdir(cpath)
 
-        # Make sure to go back to master
-        #self.master()
-
         self.recent_snapshot = True
-

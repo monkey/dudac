@@ -19,9 +19,13 @@ import sys
 import time
 import commands
 
-ANSI_BOLD    = "\033[1m"
-ANSI_CYAN    = "\033[36m"
-ANSI_MAGENTA = "\033[35m"
+# BUILD: Set the default branch to dst-1 (Duda Stable API Level 1)
+DEFAULT_API_LEVEL = 1
+
+# ANSI Colors
+ANSI_BOLD      = "\033[1m"
+ANSI_CYAN      = "\033[36m"
+ANSI_MAGENTA   = "\033[35m"
 ANSI_RED     = "\033[31m"
 ANSI_YELLOW  = "\033[33m"
 ANSI_BLUE    = "\033[34m"
@@ -161,13 +165,13 @@ def execute(header, command, status=True, crash_debug=False, head=True):
         # The tricky part: what's the real process return status ?, according
         # to Python documentation the value or ret[0] represents the following:
         #
-        # "The exit status for the command can be interpreted according to the 
+        # "The exit status for the command can be interpreted according to the
         #  rules for the C function wait()."
         #
         # what ?, back to C manpages:
         #
-        #  This integer can be inspected with the following macros (which take 
-        #  the integer itself as  an  argument,  not a pointer to it, as is 
+        #  This integer can be inspected with the following macros (which take
+        #  the integer itself as  an  argument,  not a pointer to it, as is
         #  done in wait() and waitpid()!):
         #
         #  WIFEXITED(status)...
@@ -268,3 +272,6 @@ def print_color(msg, color, is_bold=False):
         text = ANSI_BOLD + text
 
     print text
+
+def print_entry(header):
+    print "%s %s" % (MSG_NEW, header)

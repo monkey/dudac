@@ -164,6 +164,7 @@ class Duda:
         self.SSL = False
         self.SSL_default = False
         self.output_stdout = False
+        self.api_level = DEFAULT_API_LEVEL
         self.linux_malloc = False
         self.linux_trace = False
         self.jemalloc_stats = False
@@ -201,38 +202,47 @@ class Duda:
     # Monkey sources requirements and perform the right setup
     def config_requirements(self):
         ws = os.path.abspath(self.service)
-
-        config_file = os.path.abspath("%s/dudac.conf" % (ws))
         if not os.path.isdir(ws):
             print "Error: Invalid web service directory"
             exit(1)
 
-        # Check if the service have a configuration file
-        if os.path.isfile(config_file) is False:
-            return
+        # Check if is an API level
+        try:
+            api_number = int(self.api_level)
+        except:
+            api_number = -1
 
-        # Read the configuration
-        config = DudaConfig()
-        config.open(config_file)
+        if api_number > 0:
+            version = "dst-%i" % (api_number)
+        else:
+            version = self.api_level
 
-        mk_version      = None
+        mk_version      = version
         mk_https_repo   = None
         mk_git_repo     = None
-        duda_version    = None
+        duda_version    = version
         duda_https_repo = None
         duda_git_repo   = None
 
-        for h in config.get_handlers():
-            if h == 'MONKEY':
-                # Get key/values
-                mk_version    = config.get_key(h, 'version')
-                mk_https_repo = config.get_key(h, 'https_repo')
-                mk_git_repo   = config.get_key(h, 'git_repo')
-            elif h == 'DUDA':
-                duda_version    = config.get_key(h, 'version')
-                duda_https_repo = config.get_key(h, 'https_repo')
-                duda_git_repo   = config.get_key(h, 'git_repo')
+        # Check if the service have a configuration file
+        config_file = os.path.abspath("%s/dudac.conf" % (ws))
+        if os.path.isfile(config_file) is True:
+            # Read the configuration
+            config = DudaConfig()
+            config.open(config_file)
 
+            for h in config.get_handlers():
+                if h == 'MONKEY':
+                    # Get key/values
+                    mk_version    = config.get_key(h, 'version')
+                    mk_https_repo = config.get_key(h, 'https_repo')
+                    mk_git_repo   = config.get_key(h, 'git_repo')
+                elif h == 'DUDA':
+                    duda_version    = config.get_key(h, 'version')
+                    duda_https_repo = config.get_key(h, 'https_repo')
+                    duda_git_repo   = config.get_key(h, 'git_repo')
+
+        # Configure repos
         self.mk_git.setup(mk_version, mk_https_repo, mk_git_repo)
         self.duda_git.setup(duda_version, duda_https_repo, duda_git_repo)
 
@@ -656,8 +666,9 @@ class Duda:
         print_color("http://monkey-project.com\n", ANSI_YELLOW, True)
 
     def print_help(self):
-        print "Usage: dudac [-g|-s] [-S] [-h] [-v] [-A] [-J] [-T] -w WEB_SERVICE_PATH\n"
+        print "Usage: dudac [-g|-s] [-V] [-S] [-h] [-v] [-A] [-J] [-T] -w WEB_SERVICE_PATH\n"
         print ANSI_BOLD + ANSI_WHITE + "Stack Build Options" + ANSI_RESET
+        print "  -V\t\t\tAPI level (default: %i)" % DEFAULT_API_LEVEL
         print "  -s\t\t\tGet stack sources using HTTPS"
         print "  -g\t\t\tGet stack sources using GIT protocol (SSH)"
         print "  -f\t\t\tDo not rebuild Monkey (fast-run)"
@@ -715,7 +726,7 @@ class Duda:
 
         # Reading command line arguments
         try:
-            optlist, args = getopt.getopt(sys.argv[1:], 'sgfrhvSuw:p:AXJTM:')
+            optlist, args = getopt.getopt(sys.argv[1:], 'V:sgfrhvSuw:p:AXJTM:')
         except getopt.GetoptError:
             self.print_help()
             sys.exit(2)
@@ -734,6 +745,8 @@ class Duda:
             elif op == '-r':
                 self.reset()
                 exit(0)
+            elif op == '-V':
+                self.api_level = arg
             elif op == '-S':
                 self.SSL = True
             elif op == '-h':
@@ -752,6 +765,8 @@ class Duda:
                 self.jemalloc_prof = True
             elif op == '-M':
                 monkey_conf = arg
+            elif op == '-D':
+                self.service_macros = arg
             elif op == '-T':
                 self.linux_trace = True
             elif op == '-u':
