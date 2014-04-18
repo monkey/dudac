@@ -1,6 +1,6 @@
 Duda Client Manager
 ===================
-DudaC is a command line interface for the web services framework 'Duda', 
+DudaC is a command line interface for the web services framework 'Duda',
 it aims to to manage Duda web services in a easy manner.
 
 Install
@@ -22,7 +22,7 @@ Usage
 =====
 1) Get the development environment:
 
-   # dudac -g
+   # dudac -s
 
 2) Launch your web service:
 
@@ -37,11 +37,11 @@ Examples
 If you want to see some Duda web services examples clone the following
 repository:
 
-    git clone git://git.monkey-project.com/duda-examples
+    git clone https://github.com/monkey/duda-examples.git
 
 Then you can do something like:
 
-   # dudac -f -w /path/to/duda-examples/001_hello_world
+   # dudac -w /path/to/duda-examples/001_hello_world
 
 Author
 ======
