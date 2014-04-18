@@ -8,13 +8,13 @@ def read(fname):
 
 setup(
     name="dudac",
-    version="0.18.dev",
+    version="0.20",
     author="Eduardo Silva",
     author_email="edsiper@gmail.com",
-    description=("DudaC is a command line interface for the web services"
-                 "framework 'Duda'"),
-    license="GPLv2+",
-    keywords="HTTP monkey duda server framework",
+    description=("DudaC is a command line interface for Duda I/O web services "
+                 "framework"),
+    license="LGPLv2",
+    keywords="HTTP monkey duda server framework linux websocket nosql",
     url="http://duda.io",
     packages=find_packages(),
     long_description=read('README'),
@@ -23,11 +23,11 @@ setup(
         #'Development Status :: 1 - Planning',
         #'Development Status :: 2 - Pre-Alpha',
         #'Development Status :: 3 - Alpha',
-        'Development Status :: 4 - Beta',
-        #'Development Status :: 5 - Production/Stable',
+        #'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         #'Development Status :: 6 - Mature',
         #'Development Status :: 7 - Inactive',
-        'License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)'
+        'License :: OSI Approved :: GNU Lesser General Public License v2 (LGPLv2)',
         'Programming Language :: Python',
         'Environment :: Console',
         'Intended Audience :: Developers',

@@ -1,6 +1,6 @@
 Duda Client Manager
 ===================
-DudaC is a command line interface for the web services framework 'Duda',
+DudaC is a command line interface for the Duda I/O web services framework 'Duda',
 it aims to to manage Duda web services in a easy manner.
 
 Install
@@ -8,7 +8,7 @@ Install
 
 1) Install ``dudac`` in you home:
 
-   # python setup.py install --user
+   $ python setup.py install --user
 
 2) Add ``$HOME/.local/bin`` to your ``$PATH`` adding the following line to
    your ``.bashrc``:
