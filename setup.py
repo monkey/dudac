@@ -16,7 +16,7 @@ setup(
     license="LGPLv2",
     keywords="HTTP monkey duda server framework linux websocket nosql",
     url="http://duda.io",
-    download_url="https://duda.io/releases/dudac/dudac-0.20.tar.gz",
+    download_url="http://duda.io/releases/dudac/dudac-0.20.tar.gz",
     packages=find_packages(),
     long_description=read('README'),
     include_package_data=True,
