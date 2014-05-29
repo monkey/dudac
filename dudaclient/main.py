@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 # Copyright (C) 2012-2014, Eduardo Silva <edsiper@gmail.com>
 #
@@ -27,7 +27,7 @@ from git import GitProject
 from utils import *
 
 # Version
-DUDAC_VERSION  = "0.20"
+DUDAC_VERSION  = "0.21"
 
 # Internal / Protocol
 PROTOCOL_HTTPS = 0
