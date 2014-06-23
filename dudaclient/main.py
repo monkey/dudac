@@ -27,7 +27,7 @@ from git import GitProject
 from utils import *
 
 # Version
-DUDAC_VERSION  = "0.21"
+DUDAC_VERSION  = "0.22"
 
 # Internal / Protocol
 PROTOCOL_HTTPS = 0
@@ -267,6 +267,7 @@ class Duda:
         cpath = os.getcwd()
         os.chdir(self.mk_home)
 
+        self.mk_git.version = self.api_level
         self.mk_git.snapshot()
         self.merge_on_stage()
         self.monkey.configure()
@@ -753,6 +754,7 @@ class Duda:
     def get_arguments(self):
         update = None
         monkey_conf = None
+        self.api_level = "dst-%i" % int(DEFAULT_API_LEVEL)
 
         # Reading command line arguments
         try:
