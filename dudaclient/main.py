@@ -27,7 +27,7 @@ from git import GitProject
 from utils import *
 
 # Version
-DUDAC_VERSION  = "0.22"
+DUDAC_VERSION  = "0.23"
 
 # Internal / Protocol
 PROTOCOL_HTTPS = 0
@@ -269,6 +269,10 @@ class Duda:
 
         self.mk_git.version = self.api_level
         self.mk_git.snapshot()
+
+        self.duda_git.version = self.api_level
+        self.duda_git.snapshot()
+
         self.merge_on_stage()
         self.monkey.configure()
 
