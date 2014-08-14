@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 
-# Copyright (C) 2012-2014, Eduardo Silva <edsiper@gmail.com>
+# Copyright (C) 2012-2014, Eduardo Silva <eduardo@monkey.io>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@ from git import GitProject
 from utils import *
 
 # Version
-DUDAC_VERSION  = "0.23"
+DUDAC_VERSION  = "0.24"
 
 # Internal / Protocol
 PROTOCOL_HTTPS = 0
@@ -67,13 +67,16 @@ class Monkey:
         cpath = os.getcwd()
         os.chdir(self.mk_path)
 
-        configure = "./configure --debug --disable-plugins='*' --enable-plugins='liana,duda' " + self.opts
+        # Specify the plugins
+        plugins = "liana,duda,auth"
 
-        # If we have SSL enable, we have to replace the transport layer, that means
+                # If we have SSL enable, we have to replace the transport layer, that means
         # disable Liana and enable the new PolarSSL, later we need to generate
         # certificates and configure everything to make it work properly
         if self.SSL is True:
-            configure = configure.replace('liana','polarssl')
+            plugins += ',polarssl'
+
+        configure = "./configure --debug --disable-plugins='*' --enable-plugins='%s' %s"  % (plugins, self.opts)
 
         # Run the configure script
         execute("Monkey      : prepare build", configure)
@@ -293,6 +296,38 @@ class Duda:
         f.close()
 
 
+    # Enable a plugin on plugins.load file, if the line is commented, it
+    # change the status, if it do not exist, it create a new entry at the
+    # end
+    def enable_plugin(self, monkey_stage, name):
+        matched = False
+        plugins = monkey_stage + "/conf/plugins.load"
+        f = open(plugins, "r")
+        lines = f.readlines()
+        f.close()
+
+        plugin = 'monkey-%s.so' % (name)
+
+        raw = ""
+        for line in lines:
+            if line.startswith('    # Load') and line.strip().endswith(plugin):
+                line = "    " + line[6:]
+                matched = True
+            elif line.startswith('    Load') and line.strip().endswith(plugin):
+                matched = True
+
+            raw += line
+
+        if matched is False:
+            raw += '\n'
+            raw += '    # Enabled by DudaC\n'
+            raw += '    # ================\n'
+            raw += '    Load %s/plugins/%s/%s\n' % (monkey_stage, name, plugin)
+
+        f = open(plugins, "w")
+        f.write(raw)
+        f.close()
+
     def run_webservice(self, schema=None):
         ws = os.path.abspath(self.service)
         monkey_stage = self.monkey.mk_path
@@ -309,6 +344,12 @@ class Duda:
                 self.rebuild_monkey = True
         else:
             self.rebuild_monkey = True
+
+        # Check if SSL is required and the Stack was built with SSL on it
+        if self.monkey.SSL is True:
+            polarssl = self.stage_home + '/monkey/plugins/polarssl/monkey-polarssl.so'
+            if not os.path.isfile(polarssl):
+                self.rebuild_monkey = True
 
         if self.rebuild_monkey is True:
             # Backup our original path
@@ -336,6 +377,10 @@ class Duda:
             self.monkey.configure()
             self.monkey.make_build()
 
+            f = open(self.stage_home + '/monkey/api_level.dudac', 'w')
+            f.write(self.mk_git.version + '\n')
+            f.close()
+
             # Restore path
             os.chdir(cpath)
 
@@ -348,7 +393,7 @@ class Duda:
         # Monkey headers
         mk_inc      = monkey_stage + "/src/include"
         mk_duda     = monkey_stage + "/plugins/duda/src"
-	mk_packages = monkey_stage + "/plugins/duda/"
+        mk_packages = monkey_stage + "/plugins/duda/"
 
         # Read the Makefile.in file
         mk_ins = []
@@ -455,21 +500,11 @@ class Duda:
         f.close()
 
         # Make sure Duda plugin is enabled on plugins.load
-        plugins = monkey_stage + "/conf/plugins.load"
-        f = open(plugins, "r")
-        lines = f.readlines()
-        f.close()
+        self.enable_plugin(monkey_stage, 'duda')
+        self.enable_plugin(monkey_stage, 'auth')
 
-        raw = ""
-        for line in lines:
-            if line.startswith("    # Load") and line.strip().endswith("-duda.so"):
-                line = "    " + line[6:]
-
-            raw += line
-
-        f = open(plugins, "w")
-        f.write(raw)
-        f.close()
+        if self.monkey.SSL is True:
+            self.enable_plugin(monkey_stage, 'polarssl')
 
         # Setting up Duda plugin configuration
         duda = monkey_stage + "/conf/plugins/duda/duda.conf"
@@ -500,7 +535,7 @@ class Duda:
                 raw += "    Port " + str(self.port) + "\n"
             elif line.startswith("    User"):
                 raw += "    # User  Inactivated by DudaC\n"
-            elif line.startswith("    TransportLayer") and self.rebuild_monkey is True:
+            elif line.startswith("    TransportLayer"):
                 if self.SSL is True:
                     raw += "    TransportLayer polarssl\n"
                     self.SSL_default = True
@@ -583,7 +618,13 @@ class Duda:
         if self.SSL_default is True:
             self.SSL_configure(monkey_stage)
 
+
         http = monkey_stage + "bin/monkey"
+
+        if self.SSL is True:
+            http += " --transport polarssl"
+        else:
+            http += " --transport liana"
 
         try:
             if self.SSL_default is True:
@@ -663,7 +704,7 @@ class Duda:
             execute("SSL: Generate RSA", cmd)
             rsa_key_file = p + "rsa_key.pem"
         else:
-            print_msg("SSL: RSA       (cached)", True)
+            print_msg("SSL         : RSA (cached)", True)
 
         if certificate_file is None:
             cmd = "openssl req -new -x509 -key " + rsa_key_file + \
@@ -671,14 +712,14 @@ class Duda:
             execute("SSL: Generate Certificate", cmd)
             certificate_file = p + "srv_cert.pem"
         else:
-            print_msg("SSL: Cert      (cached)", True)
+            print_msg("SSL         : Cert (cached)", True)
 
         if dh_param_file is None:
             cmd = "openssl dhparam -out " + p + "dhparam.pem 1024"
             execute("SSL: Generate DH Params", cmd)
             dh_param_file = p + "dhparam.pem"
         else:
-            print_msg("SSL: DH Params (cached)", True)
+            print_msg("SSL         : DH Params (cached)", True)
 
         # Create new config and override polarssl.conf file
         raw  = "[SSL]\n"

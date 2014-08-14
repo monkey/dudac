@@ -256,12 +256,12 @@ def execute(header, command, status=True, crash_debug=False, head=True):
     return ret
 
 def print_msg(msg, status = 0):
-    print "[+] %-30s" % (msg),
+    print "%s %-70s" % (MSG_NEW, msg),
 
     if status == 0:
-        print "[FAILED]\n"
+        print MSG_FAIL
     else:
-        print "[OK]"
+        print MSG_OK
 
 def print_bold(msg):
     print ANSI_BOLD + msg + ANSI_RESET
