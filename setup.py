@@ -8,7 +8,7 @@ def read(fname):
 
 setup(
     name="dudac",
-    version="0.24",
+    version="0.25",
     author="Eduardo Silva",
     author_email="edsiper@gmail.com",
     description=("DudaC is a command line interface for Duda I/O web services "
