@@ -27,7 +27,7 @@ from git import GitProject
 from utils import *
 
 # Version
-DUDAC_VERSION  = "0.24"
+DUDAC_VERSION  = "0.25"
 
 # Internal / Protocol
 PROTOCOL_HTTPS = 0
@@ -801,6 +801,9 @@ class Duda:
         monkey_conf = None
         self.api_level = "dst-%i" % int(DEFAULT_API_LEVEL)
 
+        if 'DEFS' not in os.environ:
+            os.environ['DEFS'] = ''
+
         # Reading command line arguments
         try:
             optlist, args = getopt.getopt(sys.argv[1:], 'V:sgFrhvSuw:p:AXJTM:')
@@ -881,6 +884,7 @@ class Duda:
         # Jemalloc Stats
         if self.linux_malloc is False and self.jemalloc_stats is True:
             os.environ['JEMALLOC_OPTS'] += ' --enable-stats'
+            os.environ['DEFS'] += ' -DJEMALLOC_STATS'
 
         # Rebuild the stack ?
         if update is not None:
