@@ -1,9 +1,15 @@
 #!/usr/bin/env python2
-import sys
+
 import os
+import sys
+import signal
+from dudaclient.main import main
+
+def signal_handler(signal, frame):
+    print "\nExiting...\n"
+    sys.exit(0)
 
 dot = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, dot)
-
-from dudaclient.main import main
+signal.signal(signal.SIGINT, signal_handler)
 main()

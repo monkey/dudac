@@ -39,6 +39,8 @@ MSG_OK       = MSG_TAG_INIT + ANSI_GREEN + 'OK' + MSG_TAG_END
 MSG_FAIL     = MSG_TAG_INIT + ANSI_RED + 'FAILED' + MSG_TAG_END
 MSG_NEW      = '[' + ANSI_YELLOW + '+' + ANSI_RESET + ']'
 
+DEBUG_MODE = False
+
 # Print a failure message
 def fail_msg(msg):
     print ANSI_RED + "[-] " + ANSI_RESET + msg
@@ -275,3 +277,11 @@ def print_color(msg, color, is_bold=False):
 
 def print_entry(header):
     print "%s %s" % (MSG_NEW, header)
+
+def debug(msg):
+    global DEBUG_MODE
+
+    if DEBUG_MODE is False:
+        return
+
+    print "%s %-70s" % (MSG_NEW, msg)

@@ -176,10 +176,9 @@ class Duda:
         self.jemalloc_stats = False
         self.jemalloc_prof  = False
         self.rebuild_monkey = False
+        self.reset_environment = False
         self.mk_git = MonkeyGIT()
         self.duda_git = DudaGIT()
-        self.mk_home = self.mk_git.home()
-        self.duda_home  = self.duda_git.home()
         self.dudac_wd   = '%s/.dudac' % (os.getenv('USERPROFILE') or os.getenv('HOME'))
         self.dudac_stage_path = os.getenv('DUDAC_STAGE_PATH')
         self.load_makefile()
@@ -189,9 +188,14 @@ class Duda:
         # version of Monkey and Duda plugin, mostly for development purposes
         if self.dudac_stage_path is not None:
             self.stage_home = self.dudac_stage_path
+            self.mk_home    = self.stage_home + '/monkey/'
+            self.duda_home  = self.mk_home    + '/plugins/duda/'
         else:
             self.stage_home = self.dudac_wd + '/stage/'
+            self.mk_home    = self.dudac_wd + '/monkey/'
+            self.duda_home  = self.dudac_wd + '/duda/'
 
+        # Instance Monkey handler
         self.monkey  = Monkey(self.stage_home + 'monkey/')
         self.get_arguments()
 
@@ -391,7 +395,7 @@ class Duda:
             exit(1)
 
         # Monkey headers
-        mk_inc      = monkey_stage + "/src/include"
+        mk_inc      = monkey_stage + "/include/ -I" + monkey_stage + "/src/include"
         mk_duda     = monkey_stage + "/plugins/duda/src"
         mk_packages = monkey_stage + "/plugins/duda/"
 
@@ -735,6 +739,7 @@ class Duda:
         if self.dudac_stage_path is None:
             self.mk_git.remove(self.mk_home)
             self.duda_git.remove(self.duda_home)
+            shutil.rmtree(self.stage_home)
 
     def print_version(self):
         print_bold("Duda Client Manager - v%s" % DUDAC_VERSION)
@@ -806,7 +811,7 @@ class Duda:
 
         # Reading command line arguments
         try:
-            optlist, args = getopt.getopt(sys.argv[1:], 'V:sgFrhvSuw:p:AXJTM:')
+            optlist, args = getopt.getopt(sys.argv[1:], 'DV:sgFrhvSuw:p:AXJTM:')
         except getopt.GetoptError:
             self.print_help()
             sys.exit(2)
@@ -823,8 +828,7 @@ class Duda:
             elif op == '-F':
                 self.rebuild_monkey = True
             elif op == '-r':
-                self.reset()
-                exit(0)
+                self.reset_environment = True
             elif op == '-V':
                 self.api_level = arg
             elif op == '-S':
@@ -857,6 +861,11 @@ class Duda:
             elif op == '-w':
                 self.service = arg
                 self.config_requirements()
+
+        # Reset environment
+        if self.reset_environment is True:
+            self.reset()
+            sys.exit(0)
 
         # SSL
         if self.SSL is True:
