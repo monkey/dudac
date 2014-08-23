@@ -27,7 +27,7 @@ from git import GitProject
 from utils import *
 
 # Version
-DUDAC_VERSION  = "0.25"
+DUDAC_VERSION  = "0.26"
 
 # Internal / Protocol
 PROTOCOL_HTTPS = 0
