@@ -774,6 +774,12 @@ class Duda:
         print "  -h\t\t\tPrint this help"
         print "  -u\t\t\tRedirect server output to STDOUT"
         print "  -v\t\t\tPrint version"
+        print
+
+        print ANSI_BOLD + ANSI_WHITE + "Environment Variables" + ANSI_RESET
+        print "  DUDAC_HOME\t\tSet where to store the stack sources (default: ~/.dudac)"
+        print "  DUDAC_STAGE_PATH\tSet the stage build area (default: ~/.dudac/stage)"
+        print
 
     # it creates a configuration schema to override the values of the main
     # Monkey configuration file
