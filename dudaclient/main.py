@@ -116,30 +116,24 @@ class Monkey:
             pass
 
 class MonkeyGIT (GitProject):
-    def __init__(self):
+    def __init__(self, home_path):
+        self._home = home_path
         https_repo = 'https://github.com/monkey/monkey.git'
         git_repo   = 'git@github.com:monkey/monkey.git'
         GitProject.__init__(self, 'Monkey', https_repo, git_repo)
 
     def home(self):
-        # Check our user temporal directory
-        home = os.getenv('USERPROFILE') or os.getenv('HOME')
-        dudac_home = "%s/.dudac" % (home)
-
-        return "%s/monkey" % (dudac_home)
+        return self._home
 
 class DudaGIT(GitProject):
-    def __init__(self):
+    def __init__(self, home_path):
+        self._home = home_path
         https_repo = 'https://github.com/monkey/duda.git'
         git_repo   = 'git@github.com:monkey/duda.git'
         GitProject.__init__(self, 'Duda', https_repo, git_repo)
 
     def home(self):
-        # Check our user temporal directory
-        home = os.getenv('USERPROFILE') or os.getenv('HOME')
-        dudac_home = "%s/.dudac" % (home)
-
-        return "%s/duda" % (dudac_home)
+        return self._home
 
 class Duda:
     # Default configuration directives for Monkey configuration
@@ -177,26 +171,37 @@ class Duda:
         self.jemalloc_prof  = False
         self.rebuild_monkey = False
         self.reset_environment = False
-        self.mk_git = MonkeyGIT()
-        self.duda_git = DudaGIT()
-        self.dudac_wd   = '%s/.dudac' % (os.getenv('USERPROFILE') or os.getenv('HOME'))
-        self.dudac_stage_path = os.getenv('DUDAC_STAGE_PATH')
         self.load_makefile()
 
-        # In case the DUDAC_STAGE_PATH environment variable is set, use
-        # the alternative stage path. This is useful when using a fixed-path
-        # version of Monkey and Duda plugin, mostly for development purposes
-        if self.dudac_stage_path is not None:
-            self.stage_home = self.dudac_stage_path
-            self.mk_home    = self.stage_home + '/monkey/'
-            self.duda_home  = self.mk_home    + '/plugins/duda/'
-        else:
-            self.stage_home = self.dudac_wd + '/stage/'
-            self.mk_home    = self.dudac_wd + '/monkey/'
-            self.duda_home  = self.dudac_wd + '/duda/'
+        # Load Environment variables
+        self.dudac_home_path  = os.getenv('DUDAC_HOME')
+        self.dudac_stage_path = os.getenv('DUDAC_STAGE')
+
+        # Sanitize paths: DUDAC_HOME
+        if self.dudac_home_path is None:
+            self.dudac_home_path  = '%s/.dudac/' % (os.getenv('USERPROFILE') or os.getenv('HOME'))
+        if self.dudac_home_path[-1] != '/':
+            self.dudac_home_path += '/'
+
+        # Sanitize paths: DUDAC_STAGE
+        if self.dudac_stage_path is None:
+            self.dudac_stage_path = self.dudac_home_path + 'stage/'
+        if self.dudac_stage_path[-1] != '/':
+            self.dudac_stage_path += '/'
+
+        print_info("HOME        : " + self.dudac_home_path)
+        print_info("STAGE       : " + self.dudac_stage_path)
+
+        # Set Source paths for Monkey and Duda
+        self.mk_home   = self.dudac_home_path + 'monkey/'
+        self.duda_home = self.dudac_home_path + 'duda/'
+
+        # Initialize GIT handlers
+        self.mk_git   = MonkeyGIT(self.mk_home)
+        self.duda_git = DudaGIT(self.duda_home)
 
         # Instance Monkey handler
-        self.monkey  = Monkey(self.stage_home + 'monkey/')
+        self.monkey  = Monkey(self.dudac_stage_path + 'monkey/')
         self.get_arguments()
 
         exit(0)
@@ -291,11 +296,11 @@ class Duda:
 
     def merge_on_stage(self):
         # Create archives from repos
-        self.mk_git.archive_to(self.stage_home + '/monkey')
-        self.duda_git.archive_to(self.stage_home + '/monkey/plugins/duda')
+        self.mk_git.archive_to(self.dudac_stage_path + '/monkey')
+        self.duda_git.archive_to(self.dudac_stage_path + '/monkey/plugins/duda')
 
         # Tag the content with branch used
-        f = open(self.stage_home + '/monkey/api_level.dudac', 'w')
+        f = open(self.dudac_stage_path + '/monkey/api_level.dudac', 'w')
         f.write(self.mk_git.version + '\n')
         f.close()
 
@@ -338,7 +343,7 @@ class Duda:
 
         # Check if the web service was staged and built previously, we
         # this check to make sure the service is updated as the user needs/want
-        stage_level = self.stage_home + '/monkey/api_level.dudac'
+        stage_level = self.dudac_stage_path + '/monkey/api_level.dudac'
         if os.path.isfile(stage_level):
             f = open(stage_level, 'r')
             level = f.read().replace('\n', '')
@@ -351,7 +356,7 @@ class Duda:
 
         # Check if SSL is required and the Stack was built with SSL on it
         if self.monkey.SSL is True:
-            polarssl = self.stage_home + '/monkey/plugins/polarssl/monkey-polarssl.so'
+            polarssl = self.dudac_stage_path + '/monkey/plugins/polarssl/monkey-polarssl.so'
             if not os.path.isfile(polarssl):
                 self.rebuild_monkey = True
 
@@ -381,7 +386,7 @@ class Duda:
             self.monkey.configure()
             self.monkey.make_build()
 
-            f = open(self.stage_home + '/monkey/api_level.dudac', 'w')
+            f = open(self.dudac_stage_path + '/monkey/api_level.dudac', 'w')
             f.write(self.mk_git.version + '\n')
             f.close()
 
@@ -736,10 +741,15 @@ class Duda:
         f.close()
 
     def reset(self):
-        if self.dudac_stage_path is None:
+        if os.getenv('DUDAC_HOME') is None or self.reset_force is True:
             self.mk_git.remove(self.mk_home)
             self.duda_git.remove(self.duda_home)
-            shutil.rmtree(self.stage_home)
+            try:
+                shutil.rmtree(self.dudac_stage_path)
+            except:
+                pass
+        else:
+            print_msg("Cannot reset when DUDAC_HOME is set, use -R instead", 0)
 
     def print_version(self):
         print_bold("Duda Client Manager - v%s" % DUDAC_VERSION)
@@ -753,9 +763,10 @@ class Duda:
         print "  -s\t\t\tGet stack sources using HTTPS"
         print "  -g\t\t\tGet stack sources using GIT protocol (SSH)"
         print "  -F\t\t\tForce mode, rebuild the Stage area"
-        print "  -r\t\t\tReset environment"
-
+        print "  -r\t\t\tRemove stack sources"
+        print "  -R\t\t\tRemove stack sources even if $DUDAC_HOME is set"
         print
+
         print ANSI_BOLD + ANSI_WHITE + "Profiling and Trace" + ANSI_RESET
         print "  -A\t\t\tUse libc memory allocator instead of Jemalloc (disabled)"
         print "  -X\t\t\tEnable Jemalloc statistics (disabled)"
@@ -778,7 +789,7 @@ class Duda:
 
         print ANSI_BOLD + ANSI_WHITE + "Environment Variables" + ANSI_RESET
         print "  DUDAC_HOME\t\tSet where to store the stack sources (default: ~/.dudac)"
-        print "  DUDAC_STAGE_PATH\tSet the stage build area (default: ~/.dudac/stage)"
+        print "  DUDAC_STAGE\t\tSet the stage build area (default: ~/.dudac/stage)"
         print
 
     # it creates a configuration schema to override the values of the main
@@ -817,7 +828,7 @@ class Duda:
 
         # Reading command line arguments
         try:
-            optlist, args = getopt.getopt(sys.argv[1:], 'DV:sgFrhvSuw:p:AXJTM:')
+            optlist, args = getopt.getopt(sys.argv[1:], 'DV:sgFrRhvSuw:p:AXJTM:')
         except getopt.GetoptError:
             self.print_help()
             sys.exit(2)
@@ -835,6 +846,10 @@ class Duda:
                 self.rebuild_monkey = True
             elif op == '-r':
                 self.reset_environment = True
+                self.reset_force = False
+            elif op == '-R':
+                self.reset_environment = True
+                self.reset_force = True
             elif op == '-V':
                 self.api_level = arg
             elif op == '-S':
@@ -904,13 +919,13 @@ class Duda:
         # Rebuild the stack ?
         if update is not None:
             if self.rebuild_monkey is True:
-                print "Error: you cannot mix the flag -f with -g or -s"
+                print "Error: you cannot mix the flag -g or -s"
                 exit(1)
 
-            if self.dudac_stage_path is None:
-                self.update_framework(update)
-            else:
-                print_msg("DUDAC_STAGE_PATH is set")
+            #if self.dudac_stage_path is None:
+            self.update_framework(update)
+            #else:
+            #    print_msg("DUDAC_STAGE_PATH is seta")
 
         # Override Monkey configuration. It will create the configuration
         # schema which is used later by the run_webservice() method.

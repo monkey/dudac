@@ -70,7 +70,7 @@ class GitProject(object):
         cpath = os.getcwd()
         os.chdir(to)
         cmd = "git pull"
-        execute("GIT %s: updating" % (self.project_name), cmd)
+        execute("GIT %-8s: updating" % (self.project_name), cmd)
         os.chdir(cpath)
 
         self.recent_update = True
@@ -107,7 +107,7 @@ class GitProject(object):
         cmd = 'git checkout master'
         cpath = os.getcwd()
         os.chdir(home)
-        execute("GIT %s: checkout master" % (self.project_name), cmd)
+        execute("GIT %-7s : checkout master" % (self.project_name), cmd)
         os.chdir(cpath)
 
         self.recent_master = True

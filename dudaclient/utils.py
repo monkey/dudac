@@ -38,6 +38,7 @@ MSG_TAG_END  = ANSI_RESET + ANSI_BOLD + ']' + ANSI_RESET
 MSG_OK       = MSG_TAG_INIT + ANSI_GREEN + 'OK' + MSG_TAG_END
 MSG_FAIL     = MSG_TAG_INIT + ANSI_RED + 'FAILED' + MSG_TAG_END
 MSG_NEW      = '[' + ANSI_YELLOW + '+' + ANSI_RESET + ']'
+MSG_INFO     = '[' + ANSI_GREEN + 'i' + ANSI_RESET + ']'
 
 DEBUG_MODE = False
 
@@ -274,6 +275,9 @@ def print_color(msg, color, is_bold=False):
         text = ANSI_BOLD + text
 
     print text
+
+def print_info(msg):
+    print "%s %s" % (MSG_INFO, msg)
 
 def print_entry(header):
     print "%s %s" % (MSG_NEW, header)
