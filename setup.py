@@ -8,7 +8,7 @@ def read(fname):
 
 setup(
     name="dudac",
-    version="0.26",
+    version="0.30",
     author="Eduardo Silva",
     author_email="edsiper@gmail.com",
     description=("DudaC is a command line interface for Duda I/O web services "
@@ -16,7 +16,7 @@ setup(
     license="LGPLv2",
     keywords="HTTP monkey duda server framework linux websocket nosql",
     url="http://duda.io",
-    download_url="http://duda.io/releases/duda-client/dudac-0.26.tar.gz",
+    download_url="http://duda.io/releases/duda-client/dudac-0.30.tar.gz",
     packages=find_packages(),
     long_description=read('README'),
     include_package_data=True,

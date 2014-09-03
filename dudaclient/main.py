@@ -27,7 +27,7 @@ from git import GitProject
 from utils import *
 
 # Version
-DUDAC_VERSION  = "0.26"
+DUDAC_VERSION  = "0.30"
 
 # Internal / Protocol
 PROTOCOL_HTTPS = 0
@@ -188,9 +188,6 @@ class Duda:
             self.dudac_stage_path = self.dudac_home_path + 'stage/'
         if self.dudac_stage_path[-1] != '/':
             self.dudac_stage_path += '/'
-
-        print_info("HOME        : " + self.dudac_home_path)
-        print_info("STAGE       : " + self.dudac_stage_path)
 
         # Set Source paths for Monkey and Duda
         self.mk_home   = self.dudac_home_path + 'monkey/'
@@ -372,7 +369,7 @@ class Duda:
                 sys.exit(1)
 
             # Make sure Monkey sources match the snapshot
-            if not os.getenv('DUDAC_STAGE_PATH'):
+            if not os.getenv('DUDAC_STAGE'):
                 self.mk_git.snapshot()
                 self.duda_git.snapshot()
                 self.merge_on_stage()
@@ -835,6 +832,7 @@ class Duda:
 
         if len(optlist) == 0:
             self.print_help()
+            sys.exit(2)
 
         # Check options
         for op, arg in optlist:
@@ -854,9 +852,6 @@ class Duda:
                 self.api_level = arg
             elif op == '-S':
                 self.SSL = True
-            elif op == '-h':
-                self.print_help()
-                sys.exit(0)
             elif op == '-p':
                 if not str(arg).isdigit():
                     self.print_help()
@@ -882,6 +877,15 @@ class Duda:
             elif op == '-w':
                 self.service = arg
                 self.config_requirements()
+            elif op == '-h':
+                self.print_help()
+                sys.exit(0)
+            else:
+                self.print_help()
+                sys.exit(0)
+
+        print_info("HOME        : " + self.dudac_home_path)
+        print_info("STAGE       : " + self.dudac_stage_path)
 
         # Reset environment
         if self.reset_environment is True:
@@ -922,10 +926,7 @@ class Duda:
                 print "Error: you cannot mix the flag -g or -s"
                 exit(1)
 
-            #if self.dudac_stage_path is None:
             self.update_framework(update)
-            #else:
-            #    print_msg("DUDAC_STAGE_PATH is seta")
 
         # Override Monkey configuration. It will create the configuration
         # schema which is used later by the run_webservice() method.
