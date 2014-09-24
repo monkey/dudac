@@ -142,7 +142,7 @@ def execute_stdout(header, command, head=True):
 def execute(header, command, status=True, crash_debug=False, head=True):
     if head is True:
         print "%s %-70s" % (MSG_NEW, header),
-    else:
+    elif header is not None:
         print header
 
     sys.stdout.flush()

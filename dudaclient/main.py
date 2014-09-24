@@ -115,6 +115,16 @@ class Monkey:
         elif t == 'SSL':
             pass
 
+    def version(self):
+        bin = self.mk_path + "/bin/monkey -v"
+        output = execute(None, bin, False, False, False)
+        lines = output[1].split('\n')
+        header = lines[0]
+        pos = header.find(' v')
+        version = header[pos + 2:]
+        #print_info("Monkey      : v" + version)
+        return version
+
 class MonkeyGIT (GitProject):
     def __init__(self, home_path):
         self._home = home_path
@@ -535,11 +545,20 @@ class Duda:
         lines = f.readlines()
         f.close()
 
+        # Get Monkey version
+        mk_version = self.monkey.version()[:3]
         raw = ""
         for line in lines:
-            if line.startswith("    Port"):
-                raw += "    Port " + str(self.port) + "\n"
-            elif line.startswith("    User"):
+            if mk_version == '1.6':
+                if line.startswith("    Listen"):
+                    raw += "    Listen " + str(self.port) + "\n"
+                    continue
+            elif mk_version == '1.5' or mk_version == '1.4':
+                if line.startswith("    Port"):
+                    raw += "    Port " + str(self.port) + "\n"
+                    continue
+
+            if line.startswith("    User"):
                 raw += "    # User  Inactivated by DudaC\n"
             elif line.startswith("    TransportLayer"):
                 if self.SSL is True:
@@ -934,6 +953,8 @@ class Duda:
             mconf_schema = self.conf_schema(monkey_conf)
         else:
             mconf_schema = None
+
+        self.monkey.version()
 
         # Run web service
         if self.service:
