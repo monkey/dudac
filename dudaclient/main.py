@@ -50,6 +50,7 @@ class DudaConfig(ConfigParser.ConfigParser):
         except:
             return None
 
+
 class Monkey:
     opts = ''
     recent_configure = False
@@ -122,8 +123,7 @@ class Monkey:
         header = lines[0]
         pos = header.find(' v')
         version = header[pos + 2:]
-        #print_info("Monkey      : v" + version)
-        return version
+        return ".".join(version.split()[3].split(".")[0:2])
 
 class MonkeyGIT (GitProject):
     def __init__(self, home_path):
@@ -546,7 +546,7 @@ class Duda:
         f.close()
 
         # Get Monkey version
-        mk_version = self.monkey.version()[:3]
+        mk_version = self.monkey.version()
         raw = ""
         for line in lines:
             if mk_version == '1.6':
@@ -953,8 +953,6 @@ class Duda:
             mconf_schema = self.conf_schema(monkey_conf)
         else:
             mconf_schema = None
-
-        self.monkey.version()
 
         # Run web service
         if self.service:
