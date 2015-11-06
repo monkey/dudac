@@ -9,7 +9,7 @@ $(NAME).duda: $(OBJECTS)
 	$(_DD) $(CFLAGS) $(DEFS) -shared -o $@ $^ -lc $(LDFLAGS)
 
 .c.o:
-	$(_CC) -c $(CFLAGS) $(DEFS) $(INCDIR) -fPIC $<
+	$(_CC) -c $(CFLAGS) $(DEFS) $(INCDIR) -fPIC $*.c -o $*.o
 	$(_CC_QUIET) -MM -MP $(CFLAGS) $(DEFS) $(INCDIR) $*.c -o $*.d > /dev/null &2>&1
 
 clean:
